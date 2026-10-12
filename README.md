@@ -1,4 +1,4 @@
-# NOME DO JOGO
+# FROSTBITE
 
 | Nome | Email |
 |:-----|------:|
