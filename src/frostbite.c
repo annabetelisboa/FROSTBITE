@@ -1,15 +1,12 @@
-
-#include <stdio.h>
-#include "screen.h"
-#include "keyboard.h"
+#include "raylib.h"
 
 #define LINHAS 15
 #define COLUNAS 30
+#define TAMANHO_CELULA 30 // Tamanho em pixels de cada quadrado do mapa
 
 #define PAREDE_NORMAL '#'
 #define PAREDE_GELO 'G'
 #define CAMINHO ' '
-
 #define JOGADOR 'P'
 
 typedef struct {
@@ -20,53 +17,12 @@ typedef struct {
 } Jogador;
 
 char mapa[LINHAS][COLUNAS];
-
 Jogador jogador = {1, 1, 0, 1};
-
-/* Usa o fundo padrão do terminal quando o fundo pedido é BLACK */
-static void cor(int fg, int bg) {
-    screenSetColor(fg, bg);
-    if (bg == BLACK) {
-        printf("\033[49m");
-    }
-}
-
-/* Posiciona o cursor de forma absoluta (coluna x, linha y, começando em 1) */
-static void ir(int x, int y) {
-    printf("\033[%d;%dH", y, x);
-}
-
-#define MOLD_ESQ   3
-#define MOLD_DIR   52
-#define MOLD_TOPO  1
-#define MOLD_BASE  22
-
-static void desenharMoldura(void) {
-    cor(WHITE, BLACK);
-
-    ir(MOLD_ESQ, MOLD_TOPO);
-    printf("┌");
-    for (int x = MOLD_ESQ + 1; x < MOLD_DIR; x++) printf("─");
-    printf("┐");
-
-    for (int y = MOLD_TOPO + 1; y < MOLD_BASE; y++) {
-        ir(MOLD_ESQ, y);
-        printf("│");
-        ir(MOLD_DIR, y);
-        printf("│");
-    }
-
-    ir(MOLD_ESQ, MOLD_BASE);
-    printf("└");
-    for (int x = MOLD_ESQ + 1; x < MOLD_DIR; x++) printf("─");
-    printf("┘");
-}
 
 void inicializarMapa(void) {
     for (int linha = 0; linha < LINHAS; linha++) {
         for (int coluna = 0; coluna < COLUNAS; coluna++) {
-            if (linha == 0 || linha == LINHAS - 1 ||
-                coluna == 0 || coluna == COLUNAS - 1) {
+            if (linha == 0 || linha == LINHAS - 1 || coluna == 0 || coluna == COLUNAS - 1) {
                 mapa[linha][coluna] = PAREDE_NORMAL;
             } else {
                 mapa[linha][coluna] = CAMINHO;
@@ -78,7 +34,6 @@ void inicializarMapa(void) {
     for (int coluna = 5; coluna <= 10; coluna++) {
         mapa[3][coluna] = PAREDE_NORMAL;
     }
-
     for (int linha = 5; linha <= 9; linha++) {
         mapa[linha][15] = PAREDE_NORMAL;
     }
@@ -92,107 +47,26 @@ void inicializarMapa(void) {
     mapa[10][21] = PAREDE_GELO;
 }
 
-
-void desenharMapa(void) {
-    screenSetNormal();
-    screenClear();
-
-    desenharMoldura();
-
-    cor(WHITE, BLACK);
-    ir(5, 2);
-    printf("FROSTBITE");
-
-    for (int linha = 0; linha < LINHAS; linha++) {
-        ir(5, linha + 4);
-        cor(WHITE, BLACK);
-
-        for (int coluna = 0; coluna < COLUNAS; coluna++) {
-            if (linha == jogador.linha && coluna == jogador.coluna) {
-                cor(YELLOW, BLACK);
-                printf("%c", JOGADOR);
-            } else if (mapa[linha][coluna] == PAREDE_NORMAL) {
-                cor(WHITE, BLACK);
-                printf("#");
-            } else if (mapa[linha][coluna] == PAREDE_GELO) {
-                cor(CYAN, BLUE);
-                printf("G");
-            } else {
-                cor(WHITE, BLACK);
-                printf(" ");
-            }
-        }
-    }
-
-    cor(WHITE, BLACK);
-    ir(5, 20);
-    printf("WASD: mover | B: quebrar gelo | R: reconstruir");
-
-    ir(5, 21);
-    printf("Q: sair                                      ");
-
-    screenUpdate();
-}
-
-void atualizarDirecao(int tecla) {
-    switch (tecla) {
-        case 'w':
-        case 'W':
-            jogador.direcaoLinha = -1;
-            jogador.direcaoColuna = 0;
-            break;
-
-        case 's':
-        case 'S':
-            jogador.direcaoLinha = 1;
-            jogador.direcaoColuna = 0;
-            break;
-
-        case 'a':
-        case 'A':
-            jogador.direcaoLinha = 0;
-            jogador.direcaoColuna = -1;
-            break;
-
-        case 'd':
-        case 'D':
-            jogador.direcaoLinha = 0;
-            jogador.direcaoColuna = 1;
-            break;
-
-        default:
-            break;
-    }
-}
-
-
 void moverJogador(void) {
     int novaLinha = jogador.linha + jogador.direcaoLinha;
     int novaColuna = jogador.coluna + jogador.direcaoColuna;
 
-    if (novaLinha < 0 || novaLinha >= LINHAS ||
-        novaColuna < 0 || novaColuna >= COLUNAS) {
-        return;
-    }
-
-    if (mapa[novaLinha][novaColuna] == CAMINHO) {
-        jogador.linha = novaLinha;
-        jogador.coluna = novaColuna;
+    if (novaLinha >= 0 && novaLinha < LINHAS && novaColuna >= 0 && novaColuna < COLUNAS) {
+        if (mapa[novaLinha][novaColuna] == CAMINHO) {
+            jogador.linha = novaLinha;
+            jogador.coluna = novaColuna;
+        }
     }
 }
-
 
 void quebrarGelo(void) {
     int frenteLinha = jogador.linha + jogador.direcaoLinha;
     int frenteColuna = jogador.coluna + jogador.direcaoColuna;
-    
-    if (frenteLinha < 0 || frenteLinha >= LINHAS ||
-        frenteColuna < 0 || frenteColuna >= COLUNAS) {
-        return;
-    }
 
-    if (mapa[frenteLinha][frenteColuna] == PAREDE_GELO) {
-        mapa[frenteLinha][frenteColuna] = CAMINHO;
+    if (frenteLinha >= 0 && frenteLinha < LINHAS && frenteColuna >= 0 && frenteColuna < COLUNAS) {
+        if (mapa[frenteLinha][frenteColuna] == PAREDE_GELO) {
+            mapa[frenteLinha][frenteColuna] = CAMINHO;
+        }
     }
 }
 
@@ -200,58 +74,57 @@ void reconstruirGelo(void) {
     int frenteLinha = jogador.linha + jogador.direcaoLinha;
     int frenteColuna = jogador.coluna + jogador.direcaoColuna;
 
-    if (frenteLinha < 0 || frenteLinha >= LINHAS ||
-        frenteColuna < 0 || frenteColuna >= COLUNAS) {
-        return;
-    }
-
-    if (mapa[frenteLinha][frenteColuna] == CAMINHO) {
-        mapa[frenteLinha][frenteColuna] = PAREDE_GELO;
+    if (frenteLinha >= 0 && frenteLinha < LINHAS && frenteColuna >= 0 && frenteColuna < COLUNAS) {
+        if (mapa[frenteLinha][frenteColuna] == CAMINHO) {
+            mapa[frenteLinha][frenteColuna] = PAREDE_GELO;
+        }
     }
 }
 
 int main(void) {
-    int tecla;
-
-    screenInit(1);
-    keyboardInit();
+    // Largura: 30 colunas * 30px = 900px | Altura: 15 linhas * 30px + 60px de HUD = 510px
+    InitWindow(COLUNAS * TAMANHO_CELULA, LINHAS * TAMANHO_CELULA + 60, "FROSTBITE");
+    SetTargetFPS(60);
 
     inicializarMapa();
-    desenharMapa();
 
-    do {
-        tecla = readch();
+    while (!WindowShouldClose()) {
+        // --- ENTRADA E DIREÇÕES ---
+        if (IsKeyPressed(KEY_W)) { jogador.direcaoLinha = -1; jogador.direcaoColuna = 0; moverJogador(); }
+        if (IsKeyPressed(KEY_S)) { jogador.direcaoLinha = 1;  jogador.direcaoColuna = 0; moverJogador(); }
+        if (IsKeyPressed(KEY_A)) { jogador.direcaoLinha = 0;  jogador.direcaoColuna = -1; moverJogador(); }
+        if (IsKeyPressed(KEY_D)) { jogador.direcaoLinha = 0;  jogador.direcaoColuna = 1;  moverJogador(); }
 
-        atualizarDirecao(tecla);
+        if (IsKeyPressed(KEY_B)) quebrarGelo();
+        if (IsKeyPressed(KEY_R)) reconstruirGelo();
 
-        switch (tecla) {
-            case 'w': case 'W':
-            case 'a': case 'A':
-            case 's': case 'S':
-            case 'd': case 'D':
-                moverJogador();
-                break;
+        // --- DESENHO DA TELA ---
+        BeginDrawing();
+            ClearBackground(DARKBLUE);
 
-            case 'b': case 'B':
-                quebrarGelo();
-                break;
+            // Desenhar o mapa
+            for (int l = 0; l < LINHAS; l++) {
+                for (int c = 0; c < COLUNAS; c++) {
+                    int x = c * TAMANHO_CELULA;
+                    int y = l * TAMANHO_CELULA;
 
-            case 'r': case 'R':
-                reconstruirGelo();
-                break;
+                    if (mapa[l][c] == PAREDE_NORMAL) {
+                        DrawRectangle(x, y, TAMANHO_CELULA - 1, TAMANHO_CELULA - 1, GRAY);
+                    } else if (mapa[l][c] == PAREDE_GELO) {
+                        DrawRectangle(x, y, TAMANHO_CELULA - 1, TAMANHO_CELULA - 1, SKYBLUE);
+                    }
+                }
+            }
 
-            default:
-                break;
-        }
+            // Desenhar Jogador
+            DrawRectangle(jogador.coluna * TAMANHO_CELULA, jogador.linha * TAMANHO_CELULA, TAMANHO_CELULA - 1, TAMANHO_CELULA - 1, YELLOW);
 
-        if (tecla != 'q' && tecla != 'Q') {
-            desenharMapa();
-        }
+            // HUD / Instruções na parte inferior
+            DrawText("WASD: mover | B: quebrar gelo | R: reconstruir gelo", 15, LINHAS * TAMANHO_CELULA + 15, 18, RAYWHITE);
 
-    } while (tecla != 'q' && tecla != 'Q');
+        EndDrawing();
+    }
 
-    keyboardDestroy();
-    screenDestroy();
-
+    CloseWindow();
     return 0;
 }
