@@ -113,6 +113,13 @@ void inicializarMapa(void) {
             }
         }
     }
+
+    // Barreira inicial de gelo entre o jogador e os inimigos.
+    for (int c = 1; c < COLUNAS - 1; c++) {
+        if (mapa[5][c] != PAREDE_NORMAL) {
+            mapa[5][c] = PAREDE_GELO;
+        }
+    }
 }
 
 
@@ -291,7 +298,7 @@ void inicializarInimigos(void) {
     inimigos[3].posicao = (Posicao){13, 20};
     mapa[13][20] = CAMINHO;
     inimigos[3].perseguidor = 1;
-    inimigos[3].contador = 0;
+    inimigos[3].contador = -300;
     inimigos[3].tamanhoRota = 0;
     inimigos[3].indiceRota = 0;
 }
@@ -601,6 +608,14 @@ int main(void) {
     inicializarMapa();
     inicializarInimigos();
     prepararRotasInimigos();
+
+    // Barreira inicial de gelo
+    for (int c = 1; c < COLUNAS - 1; c++) {
+        if (mapa[5][c] != PAREDE_NORMAL) {
+            mapa[5][c] = PAREDE_GELO;
+        }
+    }
+
     moverInimigos();
     moverPerseguidor();
 
