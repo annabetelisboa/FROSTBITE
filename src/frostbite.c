@@ -113,13 +113,6 @@ void inicializarMapa(void) {
             }
         }
     }
-
-    // Barreira inicial de gelo entre o jogador e os inimigos.
-    for (int c = 1; c < COLUNAS - 1; c++) {
-        if (mapa[5][c] != PAREDE_NORMAL) {
-            mapa[5][c] = PAREDE_GELO;
-        }
-    }
 }
 
 
@@ -196,11 +189,12 @@ void moverJogador(int direcaoLinha, int direcaoColuna) {
     coletarFruta();
 }
 
-void quebrarGelo(void) {
+void quebrarGelo() {
     int dl = jogador.direcaoLinha;
     int dc = jogador.direcaoColuna;
 
-    // O jogador precisa ter uma direção definida.
+    // Não faz nada se o jogador não estiver apontando
+    // para nenhuma direção.
     if (dl == 0 && dc == 0) {
         return;
     }
@@ -209,12 +203,16 @@ void quebrarGelo(void) {
     int c = jogador.coluna + dc;
 
     while (posicaoValida(l, c)) {
-        // A parede normal encerra a quebra.
         if (mapa[l][c] == PAREDE_NORMAL) {
             break;
         }
 
-        // Quebra todos os blocos de gelo encontrados.
+        // Não atravessa inimigos.
+        if (existeInimigo(l, c)) {
+            break;
+        }
+
+        // Só transforma gelo em caminho.
         if (mapa[l][c] == PAREDE_GELO) {
             mapa[l][c] = CAMINHO;
         }
@@ -224,8 +222,7 @@ void quebrarGelo(void) {
     }
 }
 
-
-void reconstruirGelo(void) {
+void reconstruirGelo() {
     int dl = jogador.direcaoLinha;
     int dc = jogador.direcaoColuna;
 
@@ -241,10 +238,14 @@ void reconstruirGelo(void) {
             break;
         }
 
-        // Não coloca gelo sobre personagens ou frutas.
+        // Para antes de alcançar um inimigo.
+        if (existeInimigo(l, c)) {
+            break;
+        }
+
+        // Não coloca gelo sobre frutas.
         if (mapa[l][c] == CAMINHO &&
-            !existeFruta(l, c) &&
-            !existeInimigo(l, c)) {
+            !existeFruta(l, c)) {
             mapa[l][c] = PAREDE_GELO;
         }
 
@@ -269,11 +270,10 @@ void definirRota(int indice, const Posicao rota[], int tamanho) {
 }
 
 void inicializarInimigos(void) {
-    // Inimigo 1: percorre a parte superior do mapa.
+    // Inimigo 1: patrulha a região abaixo da barreira de gelo.
     Posicao rota1[] = {
-        {2,2}, {2,3}, {2,4}, {2,5},
-        {2,6}, {2,7}, {2,8}, {2,7},
-        {2,6}, {2,5}, {2,4}, {2,3}
+        {6,2}, {6,3}, {6,4}, {6,5},
+        {6,4}, {6,3}
     };
 
     // Inimigo 2: patrulha a parte direita.
@@ -616,9 +616,6 @@ int main(void) {
         }
     }
 
-    moverInimigos();
-    moverPerseguidor();
-
     int venceu = 0;
     int perdeu = 0;
 
@@ -628,10 +625,15 @@ int main(void) {
         if (IsKeyPressed(KEY_A)) moverJogador(0, -1);
         if (IsKeyPressed(KEY_D)) moverJogador(0, 1);
 
-        if (IsKeyPressed(KEY_B)) quebrarGelo();
-        if (IsKeyPressed(KEY_R)) reconstruirGelo();
-
+        if (IsKeyPressed(KEY_B)){
+            quebrarGelo();
+        }
+        if (IsKeyPressed(KEY_R)){
+            reconstruirGelo();
+        }
+        
         moverInimigos();
+        moverPerseguidor();
 
         if (jogadorAtingido()) {
             perdeu = 1;
