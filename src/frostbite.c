@@ -3,8 +3,7 @@
 
 #define LINHAS 15
 #define COLUNAS 30
-#define TAMANHO_CELULA 30
-#define VELOCIDADE_INIMIGO 12
+#define TAMANHO_CELULA 40
 
 #define PAREDE_NORMAL '#'
 #define PAREDE_GELO 'G'
@@ -15,6 +14,7 @@
 #define VELOCIDADE_INIMIGO 12
 #define VELOCIDADE_PERSEGUIDOR 24
 #define MAX_ROTA 24
+#define NUM_OPCOES_MENU 4
 
 //declara a posicao do jogador
 typedef struct {
@@ -41,10 +41,33 @@ typedef struct {
     int sentido; // 1 = avança na rota; -1 = volta
 } Inimigo;
 
-//declaracao do sistema de pontuacao
+// Telas possíveis do jogo
+typedef enum {
+    MENU,
+    JOGANDO,
+    FASE_CONCLUIDA,
+    GAME_OVER,
+    FIM,
+    RECORDES,
+    AJUSTES,
+    SAIR,
+} Estado;
+
+// Situação geral do jogo
 typedef struct {
+    Estado estado;
     int pontos;
-} Pontuacao;
+    int fase;
+} Jogo;
+
+// Recorde: cada nó é alocado com malloc (lista encadeada)
+typedef struct Recorde {
+    int pontos;
+    int fase;
+    struct Recorde *prox;
+} Recorde;
+
+Recorde *recordes = NULL;
 
 char mapa[LINHAS][COLUNAS];
 Jogador jogador = {1, 1, 0, 1};
@@ -58,7 +81,8 @@ Posicao frutas[MAX_FRUTAS] = {
 int frutaColetada[MAX_FRUTAS] = {0};
 
 Inimigo inimigos[MAX_INIMIGOS];
-Pontuacao *pontuacao = NULL;  //chamada do sistema de pontuacao
+Jogo jogo;
+int opcaoMenu = 0;
 
 // Cria uma parede horizontal com uma abertura.
 void paredeHorizontal(int linha, int inicio, int fim, int abertura) {
@@ -155,9 +179,11 @@ int existeInimigo(int linha, int coluna) {
 
 void coletarFruta(void) {
     for (int i = 0; i < MAX_FRUTAS; i++) {
-        if (!frutaColetada[i] && frutas[i].linha == jogador.linha && frutas[i].coluna == jogador.coluna) {
+        if (!frutaColetada[i] &&
+            frutas[i].linha == jogador.linha &&
+            frutas[i].coluna == jogador.coluna) {
             frutaColetada[i] = 1;
-            pontuacao->pontos += 10;
+            jogo.pontos += 10;
         }
     }
 }
@@ -597,7 +623,7 @@ void desenharJogo(void) {
     );
 
     DrawText(
-        TextFormat("Pontos: %d", pontuacao->pontos),
+    TextFormat("Pontos: %d", jogo.pontos),
         200, LINHAS * TAMANHO_CELULA + 8,
         18, RAYWHITE
     );
@@ -611,23 +637,20 @@ void desenharJogo(void) {
     EndDrawing();
 }
 
-int main(void) {
-    InitWindow(
-        COLUNAS * TAMANHO_CELULA,
-        LINHAS * TAMANHO_CELULA + 60,
-        "FROSTBITE"
-    );
+// Desenha um texto centralizado horizontalmente na janela.
+void desenharTextoCentro(const char *texto, int y, int tamanho, Color cor) {
+    int x = (GetScreenWidth() - MeasureText(texto, tamanho)) / 2;
+    DrawText(texto, x, y, tamanho, cor);
+}
 
-    pontuacao = malloc(sizeof(Pontuacao));
+// Coloca o jogo no começo de uma fase (serve pra começar,
+// reiniciar e passar de fase).
+void iniciarFase(void) {
+    jogador = (Jogador){1, 1, 0, 1};
 
-    if (pontuacao == NULL) {
-        CloseWindow();
-        return 1;
+    for (int i = 0; i < MAX_FRUTAS; i++) {
+        frutaColetada[i] = 0;
     }
-
-    pontuacao->pontos = 0;
-
-    SetTargetFPS(60);
 
     inicializarMapa();
     inicializarInimigos();
@@ -639,76 +662,230 @@ int main(void) {
             mapa[5][c] = PAREDE_GELO;
         }
     }
+}
 
-    int venceu = 0;
-    int perdeu = 0;
+// Insere um recorde mantendo a lista ordenada (maior pontuação primeiro).
+void inserirRecorde(int pontos, int fase) {
+    Recorde *novo = malloc(sizeof(Recorde));
+    if (novo == NULL) return;   // malloc falhou
 
-    while (!WindowShouldClose() && !venceu && !perdeu) {
-        if (IsKeyPressed(KEY_W)) moverJogador(-1, 0);
-        if (IsKeyPressed(KEY_S)) moverJogador(1, 0);
-        if (IsKeyPressed(KEY_A)) moverJogador(0, -1);
-        if (IsKeyPressed(KEY_D)) moverJogador(0, 1);
+    novo->pontos = pontos;
+    novo->fase = fase;
+    novo->prox = NULL;
 
-        if (IsKeyPressed(KEY_B)){
-            quebrarGelo();
-        }
-        if (IsKeyPressed(KEY_R)){
-            reconstruirGelo();
-        }
-        
-        moverInimigos();
-        moverPerseguidor();
-
-        if (jogadorAtingido()) {
-            perdeu = 1;
-            break;
-        }
-
-        if (contarFrutasColetadas() == MAX_FRUTAS) {
-            venceu = 1;
-            break;
-        }
-
-        desenharJogo();
+    // Lista vazia ou novo é o maior: entra no início.
+    if (recordes == NULL || pontos > recordes->pontos) {
+        novo->prox = recordes;
+        recordes = novo;
+        return;
     }
 
-    // Tela final.
-    if (venceu || perdeu) {
-        while (!WindowShouldClose()) {
-            BeginDrawing();
-            ClearBackground(DARKBLUE);
+    // Senão, anda até achar o lugar certo.
+    Recorde *atual = recordes;
+    while (atual->prox != NULL && atual->prox->pontos >= pontos) {
+        atual = atual->prox;
+    }
+    novo->prox = atual->prox;
+    atual->prox = novo;
+}
 
-            if (venceu) {
-                DrawText(
-                    "FASE CONCLUIDA!",
-                    280, 190, 35, GREEN
-                );
-                DrawText(
-                    "Voce coletou todas as frutas!",
-                    240, 245, 20, RAYWHITE
-                );
-            } else {
-                DrawText(
-                    "FIM DE JOGO!",
-                    320, 190, 35, RED
-                );
-                DrawText(
-                    "Voce foi alcancado por um inimigo.",
-                    215, 245, 20, RAYWHITE
-                );
-            }
+void liberarRecordes(void) {
+    while (recordes != NULL) {
+        Recorde *prox = recordes->prox;
+        free(recordes);
+        recordes = prox;
+    }
+}
 
-            DrawText(
-                "Feche a janela para sair.",
-                300, 300, 18, RAYWHITE
+// Lógica de um frame do jogo (sem desenhar).
+void atualizarJogo(void) {
+    if (IsKeyPressed(KEY_W)) moverJogador(-1, 0);
+    if (IsKeyPressed(KEY_S)) moverJogador(1, 0);
+    if (IsKeyPressed(KEY_A)) moverJogador(0, -1);
+    if (IsKeyPressed(KEY_D)) moverJogador(0, 1);
+
+    if (IsKeyPressed(KEY_B)) quebrarGelo();
+    if (IsKeyPressed(KEY_R)) reconstruirGelo();
+
+    moverInimigos();
+    moverPerseguidor();
+
+    if (jogadorAtingido()) {
+        inserirRecorde(jogo.pontos, jogo.fase);
+        jogo.estado = GAME_OVER;
+        return;
+    }
+
+    if (contarFrutasColetadas() == MAX_FRUTAS) {
+        jogo.estado = FASE_CONCLUIDA;
+    }
+}
+
+// Tela de fase concluída: ENTER vai pra próxima fase.
+void telaFaseConcluida(void) {
+    if (IsKeyPressed(KEY_ENTER)) {
+        jogo.fase++;
+        iniciarFase();          // por enquanto repete o mesmo mapa
+        jogo.estado = JOGANDO;
+    }
+
+    BeginDrawing();
+    ClearBackground(DARKBLUE);
+    desenharTextoCentro("FASE CONCLUIDA!", 90, 35, GREEN);
+    desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 160, 22, RAYWHITE);
+    desenharTextoCentro(TextFormat("Frutas: %d/%d", contarFrutasColetadas(), MAX_FRUTAS),
+                        195, 22, RAYWHITE);
+    desenharTextoCentro("ENTER: proxima fase", 270, 18, RAYWHITE);
+    EndDrawing();
+}
+
+// Tela de game over: ENTER recomeça do zero.
+void telaGameOver(void) {
+    if (IsKeyPressed(KEY_ENTER)) {
+        jogo.pontos = 0;
+        jogo.fase = 1;
+        iniciarFase();
+        jogo.estado = MENU;  
+    }
+
+    BeginDrawing();
+    ClearBackground(DARKBLUE);
+    desenharTextoCentro("FIM DE JOGO!", 90, 35, RED);
+    desenharTextoCentro("Voce foi alcancado por um inimigo.", 140, 20, RAYWHITE);
+    desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 190, 22, RAYWHITE);
+    desenharTextoCentro(TextFormat("Frutas: %d/%d", contarFrutasColetadas(), MAX_FRUTAS),
+                        225, 22, RAYWHITE);
+    desenharTextoCentro("ENTER: voltar ao menu", 290, 18, RAYWHITE);
+    
+    EndDrawing();
+}
+
+void telaMenu(void) {
+     const char *opcoes[NUM_OPCOES_MENU] = {"Jogar", "Recordes", "Ajustes", "Sair"};
+
+    // Navegação com setas ou W/S
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+        opcaoMenu = (opcaoMenu + 1) % NUM_OPCOES_MENU;
+    }
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+        opcaoMenu = (opcaoMenu + NUM_OPCOES_MENU - 1) % NUM_OPCOES_MENU;
+    }
+
+    // Confirmação
+    if (IsKeyPressed(KEY_ENTER)) {
+        if (opcaoMenu == 0) {
+            jogo.pontos = 0;
+            jogo.fase = 1;
+            iniciarFase();
+            jogo.estado = JOGANDO;
+        } else if (opcaoMenu == 1) {
+            jogo.estado = RECORDES;
+        } else if (opcaoMenu == 2) {
+            jogo.estado = AJUSTES;
+        } else {
+            jogo.estado = SAIR;
+        }
+    }
+
+    BeginDrawing();
+    ClearBackground(DARKBLUE);
+    desenharTextoCentro("FROSTBITE", 50, 50, SKYBLUE);
+
+    for (int i = 0; i < NUM_OPCOES_MENU; i++) {
+        if (i == opcaoMenu) {
+            desenharTextoCentro(TextFormat("> %s <", opcoes[i]),
+                                160 + i * 45, 28, YELLOW);
+        } else {
+            desenharTextoCentro(opcoes[i], 160 + i * 45, 28, RAYWHITE);
+        }
+    }
+
+    desenharTextoCentro("Setas ou W/S: escolher | ENTER: confirmar",
+                        GetScreenHeight() - 40, 16, RAYWHITE);
+    EndDrawing();
+}
+
+// Tela de ajustes (vazia por enquanto; o arquivo vem depois).
+void telaAjustes(void) {
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_BACKSPACE)) {
+        jogo.estado = MENU;
+    }
+
+    BeginDrawing();
+    ClearBackground(DARKBLUE);
+    desenharTextoCentro("AJUSTES", 50, 40, GOLD);
+    desenharTextoCentro("Nenhum ainda.", 160, 22, RAYWHITE);
+    desenharTextoCentro("ENTER: voltar ao menu", GetScreenHeight() - 40, 16, RAYWHITE);
+    EndDrawing();
+}
+
+// Mostra o top 5 lido da lista de recordes.
+void telaRecordes(void) {
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_BACKSPACE)) {
+        jogo.estado = MENU;
+    }
+
+    BeginDrawing();
+    ClearBackground(DARKBLUE);
+    desenharTextoCentro("RECORDES", 50, 40, GOLD);
+
+    if (recordes == NULL) {
+        desenharTextoCentro("Nenhum recorde ainda.", 160, 22, RAYWHITE);
+    } else {
+        int pos = 0;
+        for (Recorde *r = recordes; r != NULL && pos < 5; r = r->prox, pos++) {
+            desenharTextoCentro(
+                TextFormat("%d. %d pontos (fase %d)", pos + 1, r->pontos, r->fase),
+                140 + pos * 40, 24, RAYWHITE
             );
-
-            EndDrawing();
         }
     }
-    free(pontuacao);
-    pontuacao = NULL;
 
+    desenharTextoCentro("ENTER: voltar ao menu", GetScreenHeight() - 40, 16, RAYWHITE);
+    EndDrawing();
+}
+
+int main(void) {
+    InitWindow(
+        COLUNAS * TAMANHO_CELULA,
+        LINHAS * TAMANHO_CELULA + 60,
+        "FROSTBITE"
+    );
+
+    jogo.estado = MENU;
+    jogo.pontos = 0;
+    jogo.fase = 1;
+
+    SetTargetFPS(60);
+
+    while (!WindowShouldClose() && jogo.estado != SAIR) {
+        switch (jogo.estado) {
+            case MENU:
+                telaMenu();
+                break;
+            case JOGANDO:
+                atualizarJogo();
+                desenharJogo();
+                break;
+            case FASE_CONCLUIDA:
+                telaFaseConcluida();
+                break;
+            case GAME_OVER:
+                telaGameOver();
+                break;
+            case AJUSTES:
+                telaAjustes();
+                break;
+            case RECORDES:
+                telaRecordes();
+                break;
+            default:
+                jogo.estado = SAIR;
+                break;
+        }
+    }
+    liberarRecordes();
+    CloseWindow();
     CloseWindow();
     return 0;
 }
