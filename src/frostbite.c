@@ -1,4 +1,4 @@
-
+#include <stdlib.h>
 #include "raylib.h"
 
 #define LINHAS 15
@@ -16,11 +16,13 @@
 #define VELOCIDADE_PERSEGUIDOR 24
 #define MAX_ROTA 24
 
+//declara a posicao do jogador
 typedef struct {
     int linha;
     int coluna;
 } Posicao;
 
+//declara o jogador
 typedef struct {
     int linha;
     int coluna;
@@ -28,6 +30,7 @@ typedef struct {
     int direcaoColuna;
 } Jogador;
 
+//declara o inimigo
 typedef struct {
     Posicao posicao;
     Posicao rota[MAX_ROTA];
@@ -37,6 +40,11 @@ typedef struct {
     int perseguidor;
     int sentido; // 1 = avança na rota; -1 = volta
 } Inimigo;
+
+//declaracao do sistema de pontuacao
+typedef struct {
+    int pontos;
+} Pontuacao;
 
 char mapa[LINHAS][COLUNAS];
 Jogador jogador = {1, 1, 0, 1};
@@ -50,6 +58,7 @@ Posicao frutas[MAX_FRUTAS] = {
 int frutaColetada[MAX_FRUTAS] = {0};
 
 Inimigo inimigos[MAX_INIMIGOS];
+Pontuacao *pontuacao = NULL;  //chamada do sistema de pontuacao
 
 // Cria uma parede horizontal com uma abertura.
 void paredeHorizontal(int linha, int inicio, int fim, int abertura) {
@@ -146,10 +155,9 @@ int existeInimigo(int linha, int coluna) {
 
 void coletarFruta(void) {
     for (int i = 0; i < MAX_FRUTAS; i++) {
-        if (!frutaColetada[i] &&
-            frutas[i].linha == jogador.linha &&
-            frutas[i].coluna == jogador.coluna) {
+        if (!frutaColetada[i] && frutas[i].linha == jogador.linha && frutas[i].coluna == jogador.coluna) {
             frutaColetada[i] = 1;
+            pontuacao->pontos += 10;
         }
     }
 }
@@ -555,15 +563,16 @@ void desenharJogo(void) {
                 13,
                 RED
             );
-        } else {
+        } 
+        else {
             DrawCircle(
                 x + TAMANHO_CELULA / 2,
                 y + TAMANHO_CELULA / 2,
                 9,
                 ORANGE
             );
+        }
     }
-}
 
     // Jogador.
     DrawRectangle(
@@ -588,6 +597,12 @@ void desenharJogo(void) {
     );
 
     DrawText(
+        TextFormat("Pontos: %d", pontuacao->pontos),
+        200, LINHAS * TAMANHO_CELULA + 8,
+        18, RAYWHITE
+    );
+
+    DrawText(
         "WASD: mover | B: quebrar gelo | R: reconstruir",
         15, LINHAS * TAMANHO_CELULA + 32,
         15, RAYWHITE
@@ -602,6 +617,15 @@ int main(void) {
         LINHAS * TAMANHO_CELULA + 60,
         "FROSTBITE"
     );
+
+    pontuacao = malloc(sizeof(Pontuacao));
+
+    if (pontuacao == NULL) {
+        CloseWindow();
+        return 1;
+    }
+
+    pontuacao->pontos = 0;
 
     SetTargetFPS(60);
 
@@ -682,6 +706,8 @@ int main(void) {
             EndDrawing();
         }
     }
+    free(pontuacao);
+    pontuacao = NULL;
 
     CloseWindow();
     return 0;
