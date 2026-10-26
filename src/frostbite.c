@@ -9,7 +9,7 @@
 #define PAREDE_GELO 'G'
 #define CAMINHO ' '
 
-#define MAX_FRUTAS 9
+#define MAX_FRUTAS 22
 #define MAX_INIMIGOS 4
 #define VELOCIDADE_INIMIGO 12
 #define VELOCIDADE_PERSEGUIDOR 24
@@ -73,12 +73,23 @@ char mapa[LINHAS][COLUNAS];
 Jogador jogador = {1, 1, 0, 1};
 
 Posicao frutas[MAX_FRUTAS] = {
+    // Primeira leva: 13 frutas
     {1, 5}, {2, 12}, {4, 3},
     {4, 17}, {6, 24}, {8, 10},
-    {10, 5}, {12, 19}, {13, 26}
+    {10, 5}, {12, 19}, {13, 26},
+    {2, 20}, {6, 14}, {9, 25},
+    {11, 7},
+
+    // Segunda leva: 9 frutas novas
+    {1, 10}, {3, 25}, {5, 6},
+    {7, 22}, {9, 3}, {10, 17},
+    {11, 25}, {13, 15}, {12, 5}
 };
 
 int frutaColetada[MAX_FRUTAS] = {0};
+int indiceInicialFrutas = 0;
+int quantidadeFrutasAtivas = 9;
+int segundaLevaFase2 = 0;
 
 Inimigo inimigos[MAX_INIMIGOS];
 Jogo jogo;
@@ -101,9 +112,8 @@ void abrirCorredor(int linha, int inicio, int fim) {
         }
     }
 }
-
-void inicializarMapa(void) {
-    // Primeiro, preenche o interior inteiro com gelo.
+void preencherMapaBase(void)
+{
     for (int l = 0; l < LINHAS; l++) {
         for (int c = 0; c < COLUNAS; c++) {
             if (l == 0 || l == LINHAS - 1 ||
@@ -114,6 +124,10 @@ void inicializarMapa(void) {
             }
         }
     }
+}
+
+void inicializarMapaFase1(void) {
+    preencherMapaBase();
 
     // Paredes permanentes distribuídas pelo labirinto.
     mapa[3][4] = PAREDE_NORMAL;
@@ -148,6 +162,48 @@ void inicializarMapa(void) {
     }
 }
 
+void inicializarMapaFase2(void)
+{
+    preencherMapaBase();
+
+    // Paredes permanentes da fase 2.
+    mapa[2][6] = PAREDE_NORMAL;
+    mapa[2][18] = PAREDE_NORMAL;
+    mapa[4][11] = PAREDE_NORMAL;
+    mapa[4][23] = PAREDE_NORMAL;
+    mapa[6][7] = PAREDE_NORMAL;
+    mapa[7][17] = PAREDE_NORMAL;
+    mapa[9][10] = PAREDE_NORMAL;
+    mapa[10][21] = PAREDE_NORMAL;
+    mapa[12][14] = PAREDE_NORMAL;
+
+    // Corredores horizontais.
+    abrirCorredor(2, 2, 27);
+    abrirCorredor(4, 2, 27);
+    abrirCorredor(7, 2, 27);
+    abrirCorredor(10, 2, 27);
+    abrirCorredor(12, 2, 27);
+
+    // Corredores verticais para conectar as regiões.
+    for (int l = 2; l <= 12; l++) {
+        if (mapa[l][3] != PAREDE_NORMAL) {
+            mapa[l][3] = CAMINHO;
+        }
+
+        if (mapa[l][14] != PAREDE_NORMAL) {
+            mapa[l][14] = CAMINHO;
+        }
+
+        if (mapa[l][26] != PAREDE_NORMAL) {
+            mapa[l][26] = CAMINHO;
+        }
+    }
+
+    // Área inicial do jogador.
+    mapa[1][1] = CAMINHO;
+    mapa[1][2] = CAMINHO;
+    mapa[1][3] = CAMINHO;
+}
 
 int posicaoValida(int linha, int coluna) {
     return linha >= 0 && linha < LINHAS &&
@@ -178,10 +234,14 @@ int existeInimigo(int linha, int coluna) {
 }
 
 void coletarFruta(void) {
-    for (int i = 0; i < MAX_FRUTAS; i++) {
+    for (int i = indiceInicialFrutas;
+         i < indiceInicialFrutas + quantidadeFrutasAtivas;
+         i++) {
+
         if (!frutaColetada[i] &&
             frutas[i].linha == jogador.linha &&
             frutas[i].coluna == jogador.coluna) {
+
             frutaColetada[i] = 1;
             jogo.pontos += 10;
         }
@@ -191,7 +251,10 @@ void coletarFruta(void) {
 int contarFrutasColetadas(void) {
     int total = 0;
 
-    for (int i = 0; i < MAX_FRUTAS; i++) {
+    for (int i = indiceInicialFrutas;
+         i < indiceInicialFrutas + quantidadeFrutasAtivas;
+         i++) {
+
         if (frutaColetada[i]) {
             total++;
         }
@@ -561,21 +624,24 @@ void desenharJogo(void) {
     }
 
     // Frutas ainda não coletadas.
-    for (int i = 0; i < MAX_FRUTAS; i++) {
-        if (!frutaColetada[i]) {
-            int x = frutas[i].coluna * TAMANHO_CELULA;
-            int y = frutas[i].linha * TAMANHO_CELULA;
+    for (int i = indiceInicialFrutas;
+     i < indiceInicialFrutas + quantidadeFrutasAtivas;
+     i++) {
 
-            DrawCircle(
-                x + TAMANHO_CELULA / 2,
-                y + TAMANHO_CELULA / 2,
-                8,
-                RED
-            );
+    if (!frutaColetada[i]) {
+        int x = frutas[i].coluna * TAMANHO_CELULA;
+        int y = frutas[i].linha * TAMANHO_CELULA;
 
-            DrawCircle(x + 18, y + 9, 3, GREEN);
-        }
+        DrawCircle(
+            x + TAMANHO_CELULA / 2,
+            y + TAMANHO_CELULA / 2,
+            8,
+            RED
+        );
+
+        DrawCircle(x + 18, y + 9, 3, GREEN);
     }
+}
 
     // Inimigos.
     for (int i = 0; i < MAX_INIMIGOS; i++) {
@@ -648,11 +714,28 @@ void desenharTextoCentro(const char *texto, int y, int tamanho, Color cor) {
 void iniciarFase(void) {
     jogador = (Jogador){1, 1, 0, 1};
 
+    indiceInicialFrutas = 0;
+    segundaLevaFase2 = 0;
+
+    if (jogo.fase == 2) {
+        quantidadeFrutasAtivas = 13;
+    } else {
+        quantidadeFrutasAtivas = 9;
+    }
+
     for (int i = 0; i < MAX_FRUTAS; i++) {
         frutaColetada[i] = 0;
     }
 
-    inicializarMapa();
+    if (jogo.fase == 1) {
+        inicializarMapaFase1();
+    } 
+    else if (jogo.fase == 2) {
+        inicializarMapaFase2();
+    } 
+    else {
+        inicializarMapaFase1();
+    }
     inicializarInimigos();
     prepararRotasInimigos();
 
@@ -716,8 +799,27 @@ void atualizarJogo(void) {
         return;
     }
 
-    if (contarFrutasColetadas() == MAX_FRUTAS) {
+    if (contarFrutasColetadas() == quantidadeFrutasAtivas) {
+
+        if (jogo.fase == 2 && segundaLevaFase2 == 0) {
+
+            // A primeira leva de 13 frutas terminou.
+            segundaLevaFase2 = 1;
+
+            // A segunda leva começa depois da posição 13.
+            indiceInicialFrutas = 13;
+            quantidadeFrutasAtivas = 9;
+
+            // As 9 frutas novas ainda não foram coletadas.
+            for (int i = indiceInicialFrutas; i < indiceInicialFrutas + quantidadeFrutasAtivas; i++) {
+                frutaColetada[i] = 0;
+            }
+
+        } 
+    else {
+        // Todas as frutas desta fase foram coletadas.
         jogo.estado = FASE_CONCLUIDA;
+        }
     }
 }
 
