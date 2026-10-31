@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include "raylib.h"
 
+void preencherMapaBase(void);
+void abrirCorredor(int linha, int inicio, int fim);
+
 #define LINHAS 15
 #define COLUNAS 30
 #define TAMANHO_CELULA 40
@@ -10,7 +13,7 @@
 #define CAMINHO ' '
 
 #define MAX_FRUTAS 22
-#define MAX_INIMIGOS 4
+#define MAX_INIMIGOS 5
 #define VELOCIDADE_INIMIGO 12
 #define VELOCIDADE_PERSEGUIDOR 24
 #define MAX_ROTA 24
@@ -21,6 +24,26 @@ typedef struct {
     int linha;
     int coluna;
 } Posicao;
+
+//declara a base das fases
+typedef struct {
+    int numero;
+    int totalFrutas;
+    int frutasPrimeiraLeva;
+    int frutasSegundaLeva;
+    int frutasTerceiraLeva;
+    int mapa;
+    float velocidadeInimigos;
+    float velocidadePerseguidores;
+    int quantidadePerseguidores;
+    int nivelInteligencia;
+} Fase;
+
+Fase fases[] = {
+    {1, 9, 9, 0, 0, 1, 12, 24, 1, 1},
+    {2, 22, 13, 9, 0, 2, 10, 20, 1, 2},
+    {3, 0, 0, 0, 0, 3, 8, 16, 2, 3}
+};
 
 //declara o jogador
 typedef struct {
@@ -33,12 +56,15 @@ typedef struct {
 //declara o inimigo
 typedef struct {
     Posicao posicao;
+    Posicao posicaoAnterior;
     Posicao rota[MAX_ROTA];
     int tamanhoRota;
     int indiceRota;
     int contador;
     int perseguidor;
     int sentido; // 1 = avança na rota; -1 = volta
+    int velocidade;
+    int ativo;
 } Inimigo;
 
 // Telas possíveis do jogo
@@ -94,6 +120,71 @@ int segundaLevaFase2 = 0;
 Inimigo inimigos[MAX_INIMIGOS];
 Jogo jogo;
 int opcaoMenu = 0;
+double tempoUltimoMovimento = 0.0;
+
+//manipulação das fases
+const Fase *obterFase(int numero) {
+
+    int quantidadeFases = sizeof(fases) / sizeof(fases[0]);
+
+    for (int i = 0; i < quantidadeFases; i++) {
+
+        if (fases[i].numero == numero) {
+            return &fases[i];
+        }
+    }
+    return NULL;
+}
+
+void inicializarMapaFase3(void) {
+    preencherMapaBase();
+
+    // Paredes normais para criar obstáculos
+    mapa[3][6] = PAREDE_NORMAL;
+    mapa[3][15] = PAREDE_NORMAL;
+    mapa[3][24] = PAREDE_NORMAL;
+
+    mapa[6][10] = PAREDE_NORMAL;
+    mapa[6][20] = PAREDE_NORMAL;
+
+    mapa[9][5] = PAREDE_NORMAL;
+    mapa[9][15] = PAREDE_NORMAL;
+    mapa[9][25] = PAREDE_NORMAL;
+
+    mapa[12][10] = PAREDE_NORMAL;
+    mapa[12][20] = PAREDE_NORMAL;
+
+    // Corredores horizontais
+    abrirCorredor(2, 2, 27);
+    abrirCorredor(5, 2, 27);
+    abrirCorredor(8, 2, 27);
+    abrirCorredor(11, 2, 27);
+    abrirCorredor(13, 2, 27);
+
+    // Corredores verticais
+    for (int l = 2; l <= 13; l++) {
+        if (mapa[l][3] != PAREDE_NORMAL)
+            mapa[l][3] = CAMINHO;
+
+        if (mapa[l][14] != PAREDE_NORMAL)
+            mapa[l][14] = CAMINHO;
+
+        if (mapa[l][26] != PAREDE_NORMAL)
+            mapa[l][26] = CAMINHO;
+    }
+
+    // Área inicial do jogador
+    mapa[1][1] = CAMINHO;
+    mapa[1][2] = CAMINHO;
+    mapa[1][3] = CAMINHO;
+}
+
+int calcularDistancia(Posicao a, Posicao b) {
+    int diferencaLinha = abs(a.linha - b.linha);
+    int diferencaColuna = abs(a.coluna - b.coluna);
+
+    return diferencaLinha + diferencaColuna;
+}
 
 // Cria uma parede horizontal com uma abertura.
 void paredeHorizontal(int linha, int inicio, int fim, int abertura) {
@@ -224,6 +315,9 @@ int existeFruta(int linha, int coluna) {
 
 int existeInimigo(int linha, int coluna) {
     for (int i = 0; i < MAX_INIMIGOS; i++) {
+        if (!inimigos[i].ativo) {
+            continue;
+        }
         if (inimigos[i].posicao.linha == linha &&
             inimigos[i].posicao.coluna == coluna) {
             return 1;
@@ -363,10 +457,19 @@ void definirRota(int indice, const Posicao rota[], int tamanho) {
     }
 
     inimigos[indice].posicao = rota[0];
+    inimigos[indice].posicaoAnterior = rota[0];
     inimigos[indice].perseguidor = 0;
 }
 
 void inicializarInimigos(void) {
+    for (int i = 0; i < MAX_INIMIGOS; i++) {
+        inimigos[i].ativo = 0;
+    }
+    const Fase *config = obterFase(jogo.fase);
+
+    if (config == NULL) {
+        return;
+    }
     // Inimigo 1: patrulha a região abaixo da barreira de gelo.
     Posicao rota1[] = {
         {6,2}, {6,3}, {6,4}, {6,5},
@@ -392,16 +495,43 @@ void inicializarInimigos(void) {
     definirRota(1, rota2, sizeof(rota2) / sizeof(rota2[0]));
     definirRota(2, rota3, sizeof(rota3) / sizeof(rota3[0]));
 
+    inimigos[0].ativo = 1;
+    inimigos[1].ativo = 1;
+    inimigos[2].ativo = 1;
+
+    for (int i = 0; i < 3; i++) {
+        inimigos[i].velocidade = config->velocidadeInimigos;
+    }
+
     inimigos[3].posicao = (Posicao){13, 20};
+    inimigos[3].posicaoAnterior = inimigos[3].posicao;
+    inimigos[3].velocidade = config->velocidadePerseguidores;
     mapa[13][20] = CAMINHO;
     inimigos[3].perseguidor = 1;
     inimigos[3].contador = -300;
     inimigos[3].tamanhoRota = 0;
     inimigos[3].indiceRota = 0;
+    inimigos[3].ativo = 1;
+
+    if (jogo.fase == 3) {
+    inimigos[4].posicao = (Posicao){1, 25};
+    inimigos[4].posicaoAnterior = inimigos[4].posicao;
+    inimigos[4].velocidade = config->velocidadePerseguidores;
+    inimigos[4].perseguidor = 1;
+    inimigos[4].contador = -450;
+    inimigos[4].tamanhoRota = 0;
+    inimigos[4].indiceRota = 0;
+    inimigos[4].ativo = 1;
+
+    mapa[1][25] = CAMINHO;
+}
 }
 
 void prepararRotasInimigos(void) {
     for (int i = 0; i < MAX_INIMIGOS; i++) {
+        if (!inimigos[i].ativo) {
+            continue;
+        }
         for (int j = 0; j < inimigos[i].tamanhoRota; j++) {
             int l = inimigos[i].rota[j].linha;
             int c = inimigos[i].rota[j].coluna;
@@ -413,18 +543,55 @@ void prepararRotasInimigos(void) {
     }
 }
 
+Posicao escolherMovimentoInteligente(Posicao opcoes[], int quantidade, int indiceInimigo) {
+    Posicao jogadorPos = {jogador.linha, jogador.coluna};
+
+    Posicao melhor;
+    int menorDistancia = LINHAS * COLUNAS + 1;
+    int encontrou = 0;
+
+    for (int i = 0; i < quantidade; i++) {
+
+        int ehPosicaoAnterior =
+            opcoes[i].linha == inimigos[indiceInimigo].posicaoAnterior.linha &&
+            opcoes[i].coluna == inimigos[indiceInimigo].posicaoAnterior.coluna;
+
+        // Evita voltar à posição anterior se houver outra opção.
+        if (quantidade > 1 && ehPosicaoAnterior) {
+            continue;
+        }
+
+        int distancia = calcularDistancia(opcoes[i], jogadorPos);
+
+        if (!encontrou || distancia < menorDistancia) {
+            menorDistancia = distancia;
+            melhor = opcoes[i];
+            encontrou = 1;
+        }
+    }
+
+    if (!encontrou) {
+        return opcoes[0];
+    }
+
+    return melhor;
+}
+
 void moverInimigos(void) {
     int dl[] = {-1, 1, 0, 0};
     int dc[] = {0, 0, -1, 1};
 
     for (int i = 0; i < MAX_INIMIGOS; i++) {
+        if (!inimigos[i].ativo) {
+            continue;
+        }
         if (inimigos[i].perseguidor) {
             continue;
         }
 
         inimigos[i].contador++;
 
-        if (inimigos[i].contador < VELOCIDADE_INIMIGO) {
+        if (inimigos[i].contador < inimigos[i].velocidade) {
             continue;
         }
 
@@ -467,8 +634,17 @@ void moverInimigos(void) {
 
         // Escolhe um dos movimentos possíveis.
         if (quantidade > 0) {
-            int escolha = GetRandomValue(0, quantidade - 1);
-            inimigos[i].posicao = opcoes[escolha];
+
+            if (jogo.fase == 1) {
+                // Fase 1: movimento aleatório.
+                int escolha = GetRandomValue(0, quantidade - 1);
+                inimigos[i].posicao = opcoes[escolha];
+            }
+            else {
+                // Fases 2 e 3: movimento inteligente.
+                inimigos[i].posicao =
+                    escolherMovimentoInteligente(opcoes, quantidade, i);
+            }
         }
     }
 }
@@ -523,6 +699,9 @@ int buscarProximoPasso(Posicao origem, Posicao destino,Posicao *proximoPasso) {
             int ocupado = 0;
 
             for (int i = 0; i < MAX_INIMIGOS; i++) {
+                if (!inimigos[i].ativo) {
+                    continue;
+                }
                 if (inimigos[i].posicao.linha == nl &&
                     inimigos[i].posicao.coluna == nc &&
                     !(inimigos[i].posicao.linha == origem.linha &&
@@ -557,14 +736,17 @@ int buscarProximoPasso(Posicao origem, Posicao destino,Posicao *proximoPasso) {
 
 void moverPerseguidor(void) {
     for (int i = 0; i < MAX_INIMIGOS; i++) {
+        if (!inimigos[i].ativo) {
+            continue;
+        }
         if (!inimigos[i].perseguidor) {
             continue;
         }
 
         inimigos[i].contador++;
 
-        if (inimigos[i].contador < VELOCIDADE_PERSEGUIDOR) {
-            continue;
+        if (inimigos[i].contador < inimigos[i].velocidade) {
+        continue;
         }
 
         inimigos[i].contador = 0;
@@ -586,6 +768,9 @@ void moverPerseguidor(void) {
 
 int jogadorAtingido(void) {
     for (int i = 0; i < MAX_INIMIGOS; i++) {
+        if (!inimigos[i].ativo) {
+            continue;
+        }
         if (jogador.linha == inimigos[i].posicao.linha &&
             jogador.coluna == inimigos[i].posicao.coluna) {
             return 1;
@@ -645,6 +830,9 @@ void desenharJogo(void) {
 
     // Inimigos.
     for (int i = 0; i < MAX_INIMIGOS; i++) {
+        if (!inimigos[i].ativo) {
+            continue;
+        }
         int x = inimigos[i].posicao.coluna * TAMANHO_CELULA;
         int y = inimigos[i].posicao.linha * TAMANHO_CELULA;
 
@@ -695,7 +883,7 @@ void desenharJogo(void) {
     );
 
     DrawText(
-        "WASD: mover | B: quebrar gelo | R: reconstruir",
+        "WASD: mover | K: quebrar gelo | P: reconstruir",
         15, LINHAS * TAMANHO_CELULA + 32,
         15, RAYWHITE
     );
@@ -714,28 +902,31 @@ void desenharTextoCentro(const char *texto, int y, int tamanho, Color cor) {
 void iniciarFase(void) {
     jogador = (Jogador){1, 1, 0, 1};
 
+    const Fase *config = obterFase(jogo.fase);
+
+    if (config == NULL) {
+        return;
+    }
+
     indiceInicialFrutas = 0;
     segundaLevaFase2 = 0;
 
-    if (jogo.fase == 2) {
-        quantidadeFrutasAtivas = 13;
-    } else {
-        quantidadeFrutasAtivas = 9;
-    }
+    quantidadeFrutasAtivas = config->frutasPrimeiraLeva;
 
     for (int i = 0; i < MAX_FRUTAS; i++) {
         frutaColetada[i] = 0;
     }
 
-    if (jogo.fase == 1) {
-        inicializarMapaFase1();
-    } 
-    else if (jogo.fase == 2) {
-        inicializarMapaFase2();
-    } 
-    else {
+    if (config->mapa == 1) {
         inicializarMapaFase1();
     }
+    else if (config->mapa == 2) {
+        inicializarMapaFase2();
+    }
+    else if (config->mapa == 3) {
+        inicializarMapaFase3();
+    }
+
     inicializarInimigos();
     prepararRotasInimigos();
 
@@ -782,13 +973,30 @@ void liberarRecordes(void) {
 
 // Lógica de um frame do jogo (sem desenhar).
 void atualizarJogo(void) {
-    if (IsKeyPressed(KEY_W)) moverJogador(-1, 0);
-    if (IsKeyPressed(KEY_S)) moverJogador(1, 0);
-    if (IsKeyPressed(KEY_A)) moverJogador(0, -1);
-    if (IsKeyPressed(KEY_D)) moverJogador(0, 1);
+    double intervaloMovimento = 0.13;
 
-    if (IsKeyPressed(KEY_B)) quebrarGelo();
-    if (IsKeyPressed(KEY_R)) reconstruirGelo();
+    if (GetTime() - tempoUltimoMovimento >= intervaloMovimento) {
+
+        if (IsKeyDown(KEY_W)) {
+            moverJogador(-1, 0);
+            tempoUltimoMovimento = GetTime();
+        }
+        else if (IsKeyDown(KEY_S)) {
+            moverJogador(1, 0);
+            tempoUltimoMovimento = GetTime();
+        }
+        else if (IsKeyDown(KEY_A)) {
+            moverJogador(0, -1);
+            tempoUltimoMovimento = GetTime();
+        }
+        else if (IsKeyDown(KEY_D)) {
+            moverJogador(0, 1);
+            tempoUltimoMovimento = GetTime();
+        }
+    }
+
+    if (IsKeyPressed(KEY_K)) quebrarGelo();
+    if (IsKeyPressed(KEY_P)) reconstruirGelo();
 
     moverInimigos();
     moverPerseguidor();
@@ -799,26 +1007,30 @@ void atualizarJogo(void) {
         return;
     }
 
-    if (contarFrutasColetadas() == quantidadeFrutasAtivas) {
+    const Fase *config = obterFase(jogo.fase);
 
-        if (jogo.fase == 2 && segundaLevaFase2 == 0) {
+    if (config != NULL && contarFrutasColetadas() == quantidadeFrutasAtivas) {
 
-            // A primeira leva de 13 frutas terminou.
+        if (segundaLevaFase2 == 0 &&
+            config->frutasSegundaLeva > 0) {
+
+            // Inicia a segunda leva de frutas.
             segundaLevaFase2 = 1;
 
-            // A segunda leva começa depois da posição 13.
-            indiceInicialFrutas = 13;
-            quantidadeFrutasAtivas = 9;
+            indiceInicialFrutas = config->frutasPrimeiraLeva;
+            quantidadeFrutasAtivas = config->frutasSegundaLeva;
 
-            // As 9 frutas novas ainda não foram coletadas.
-            for (int i = indiceInicialFrutas; i < indiceInicialFrutas + quantidadeFrutasAtivas; i++) {
+            // Reinicia o estado das frutas da segunda leva.
+            for (int i = indiceInicialFrutas;
+                i < indiceInicialFrutas + quantidadeFrutasAtivas;
+                i++) {
+
                 frutaColetada[i] = 0;
             }
 
-        } 
-    else {
-        // Todas as frutas desta fase foram coletadas.
-        jogo.estado = FASE_CONCLUIDA;
+        } else {
+            // Todas as frutas da fase foram coletadas.
+            jogo.estado = FASE_CONCLUIDA;
         }
     }
 }
