@@ -12,12 +12,14 @@ void abrirCorredor(int linha, int inicio, int fim);
 #define PAREDE_GELO 'G'
 #define CAMINHO ' '
 
-#define MAX_FRUTAS 22
+#define MAX_FRUTAS 27
 #define MAX_INIMIGOS 5
-#define VELOCIDADE_INIMIGO 12
-#define VELOCIDADE_PERSEGUIDOR 24
 #define MAX_ROTA 24
 #define NUM_OPCOES_MENU 4
+
+#define VELOCIDADE_INIMIGO 12
+#define VELOCIDADE_PERSEGUIDOR 24
+#define MEMORIA_MOVIMENTO 6
 
 //declara a posicao do jogador
 typedef struct {
@@ -42,7 +44,7 @@ typedef struct {
 Fase fases[] = {
     {1, 9, 9, 0, 0, 1, 12, 24, 1, 1},
     {2, 22, 13, 9, 0, 2, 10, 20, 1, 2},
-    {3, 0, 0, 0, 0, 3, 8, 16, 2, 3}
+    {3, 27, 9, 13, 5, 3, 8, 16, 2, 3}
 };
 
 //declara o jogador
@@ -65,6 +67,10 @@ typedef struct {
     int sentido; // 1 = avança na rota; -1 = volta
     int velocidade;
     int ativo;
+
+    Posicao historico[MEMORIA_MOVIMENTO];
+    int quantidadeHistorico;
+    int indiceHistorico;
 } Inimigo;
 
 // Telas possíveis do jogo
@@ -109,13 +115,21 @@ Posicao frutas[MAX_FRUTAS] = {
     // Segunda leva: 9 frutas novas
     {1, 10}, {3, 25}, {5, 6},
     {7, 22}, {9, 3}, {10, 17},
-    {11, 25}, {13, 15}, {12, 5}
+    {11, 25}, {13, 15}, {12, 5},
+
+    // Terceira leva: 5 frutas novas
+    {2, 8},
+    {2, 24},
+    {8, 5},
+    {11, 18},
+    {13, 23}
 };
 
 int frutaColetada[MAX_FRUTAS] = {0};
 int indiceInicialFrutas = 0;
 int quantidadeFrutasAtivas = 9;
 int segundaLevaFase2 = 0;
+int terceiraLevaFase3 = 0;
 
 Inimigo inimigos[MAX_INIMIGOS];
 Jogo jogo;
@@ -514,17 +528,27 @@ void inicializarInimigos(void) {
     inimigos[3].ativo = 1;
 
     if (jogo.fase == 3) {
-    inimigos[4].posicao = (Posicao){1, 25};
-    inimigos[4].posicaoAnterior = inimigos[4].posicao;
-    inimigos[4].velocidade = config->velocidadePerseguidores;
-    inimigos[4].perseguidor = 1;
-    inimigos[4].contador = -450;
-    inimigos[4].tamanhoRota = 0;
-    inimigos[4].indiceRota = 0;
-    inimigos[4].ativo = 1;
+        inimigos[4].posicao = (Posicao){1, 25};
+        inimigos[4].posicaoAnterior = inimigos[4].posicao;
+        inimigos[4].velocidade = config->velocidadePerseguidores;
+        inimigos[4].perseguidor = 1;
+        inimigos[4].contador = -450;
+        inimigos[4].tamanhoRota = 0;
+        inimigos[4].indiceRota = 0;
+        inimigos[4].ativo = 1;
 
-    mapa[1][25] = CAMINHO;
-}
+        mapa[1][25] = CAMINHO;
+    }
+    // Inicializa a memória de movimento dos inimigos.
+    for (int i = 0; i < MAX_INIMIGOS; i++) {
+        inimigos[i].quantidadeHistorico = 0;
+        inimigos[i].indiceHistorico = 0;
+
+        if (inimigos[i].ativo) {
+            inimigos[i].historico[0] = inimigos[i].posicao;
+            inimigos[i].quantidadeHistorico = 1;
+        }
+    }
 }
 
 void prepararRotasInimigos(void) {
@@ -575,6 +599,17 @@ Posicao escolherMovimentoInteligente(Posicao opcoes[], int quantidade, int indic
     }
 
     return melhor;
+}
+
+int posicaoNoHistorico(Inimigo *inimigo, Posicao posicao) {
+    for (int i = 0; i < inimigo->quantidadeHistorico; i++) {
+        if (inimigo->historico[i].linha == posicao.linha &&
+            inimigo->historico[i].coluna == posicao.coluna) {
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 void moverInimigos(void) {
@@ -632,18 +667,42 @@ void moverInimigos(void) {
             opcoes[quantidade++] = (Posicao){nl, nc};
         }
 
-        // Escolhe um dos movimentos possíveis.
+        // Escolhe um movimento evitando posições visitadas recentemente.
         if (quantidade > 0) {
+            Posicao opcoesNovas[4];
+            int quantidadeNovas = 0;
 
-            if (jogo.fase == 1) {
-                // Fase 1: movimento aleatório.
-                int escolha = GetRandomValue(0, quantidade - 1);
-                inimigos[i].posicao = opcoes[escolha];
+            // Separa as posições que não estão no histórico.
+            for (int j = 0; j < quantidade; j++) {
+                if (!posicaoNoHistorico(&inimigos[i], opcoes[j])) {
+                    opcoesNovas[quantidadeNovas++] = opcoes[j];
+                }
             }
-            else {
-                // Fases 2 e 3: movimento inteligente.
-                inimigos[i].posicao =
-                    escolherMovimentoInteligente(opcoes, quantidade, i);
+
+            // Se todas as opções já foram visitadas,
+            // permite voltar a alguma posição para não ficar parado.
+            Posicao destino;
+
+            if (quantidadeNovas > 0) {
+                int escolha = GetRandomValue(0, quantidadeNovas - 1);
+                destino = opcoesNovas[escolha];
+            } else {
+                int escolha = GetRandomValue(0, quantidade - 1);
+                destino = opcoes[escolha];
+            }
+
+            // Realiza o movimento.
+            inimigos[i].posicaoAnterior = inimigos[i].posicao;
+            inimigos[i].posicao = destino;
+
+            // Registra a nova posição no histórico circular.
+            inimigos[i].indiceHistorico =
+                (inimigos[i].indiceHistorico + 1) % MEMORIA_MOVIMENTO;
+
+            inimigos[i].historico[inimigos[i].indiceHistorico] = destino;
+
+            if (inimigos[i].quantidadeHistorico < MEMORIA_MOVIMENTO) {
+                inimigos[i].quantidadeHistorico++;
             }
         }
     }
@@ -813,20 +872,20 @@ void desenharJogo(void) {
      i < indiceInicialFrutas + quantidadeFrutasAtivas;
      i++) {
 
-    if (!frutaColetada[i]) {
-        int x = frutas[i].coluna * TAMANHO_CELULA;
-        int y = frutas[i].linha * TAMANHO_CELULA;
+        if (!frutaColetada[i]) {
+            int x = frutas[i].coluna * TAMANHO_CELULA;
+            int y = frutas[i].linha * TAMANHO_CELULA;
 
-        DrawCircle(
-            x + TAMANHO_CELULA / 2,
-            y + TAMANHO_CELULA / 2,
-            8,
-            RED
-        );
+            DrawCircle(
+                x + TAMANHO_CELULA / 2,
+                y + TAMANHO_CELULA / 2,
+                8,
+                RED
+            );
 
-        DrawCircle(x + 18, y + 9, 3, GREEN);
+            DrawCircle(x + 18, y + 9, 3, GREEN);
+        }
     }
-}
 
     // Inimigos.
     for (int i = 0; i < MAX_INIMIGOS; i++) {
@@ -871,7 +930,7 @@ void desenharJogo(void) {
 
     DrawText(
         TextFormat("Frutas: %d/%d",
-                   contarFrutasColetadas(), MAX_FRUTAS),
+                   contarFrutasColetadas(), quantidadeFrutasAtivas),
         15, LINHAS * TAMANHO_CELULA + 8,
         18, RAYWHITE
     );
@@ -910,6 +969,7 @@ void iniciarFase(void) {
 
     indiceInicialFrutas = 0;
     segundaLevaFase2 = 0;
+    terceiraLevaFase3 = 0;
 
     quantidadeFrutasAtivas = config->frutasPrimeiraLeva;
 
@@ -1011,26 +1071,41 @@ void atualizarJogo(void) {
 
     if (config != NULL && contarFrutasColetadas() == quantidadeFrutasAtivas) {
 
+        // Inicia a segunda leva.
         if (segundaLevaFase2 == 0 &&
             config->frutasSegundaLeva > 0) {
 
-            // Inicia a segunda leva de frutas.
             segundaLevaFase2 = 1;
 
             indiceInicialFrutas = config->frutasPrimeiraLeva;
             quantidadeFrutasAtivas = config->frutasSegundaLeva;
 
-            // Reinicia o estado das frutas da segunda leva.
+        }
+        // Inicia a terceira leva.
+        else if (terceiraLevaFase3 == 0 &&
+                config->frutasTerceiraLeva > 0) {
+
+            terceiraLevaFase3 = 1;
+
+            indiceInicialFrutas =
+                config->frutasPrimeiraLeva +
+                config->frutasSegundaLeva;
+
+            quantidadeFrutasAtivas = config->frutasTerceiraLeva;
+        }
+        // Todas as levas foram concluídas.
+        else {
+            jogo.estado = FASE_CONCLUIDA;
+        }
+
+        // Reinicia o estado das frutas da nova leva.
+        if (jogo.estado != FASE_CONCLUIDA) {
             for (int i = indiceInicialFrutas;
                 i < indiceInicialFrutas + quantidadeFrutasAtivas;
                 i++) {
 
                 frutaColetada[i] = 0;
             }
-
-        } else {
-            // Todas as frutas da fase foram coletadas.
-            jogo.estado = FASE_CONCLUIDA;
         }
     }
 }
@@ -1047,8 +1122,8 @@ void telaFaseConcluida(void) {
     ClearBackground(DARKBLUE);
     desenharTextoCentro("FASE CONCLUIDA!", 90, 35, GREEN);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 160, 22, RAYWHITE);
-    desenharTextoCentro(TextFormat("Frutas: %d/%d", contarFrutasColetadas(), MAX_FRUTAS),
-                        195, 22, RAYWHITE);
+    desenharTextoCentro(TextFormat("Frutas: %d/%d", contarFrutasColetadas(), quantidadeFrutasAtivas),
+                    195, 22, RAYWHITE);
     desenharTextoCentro("ENTER: proxima fase", 270, 18, RAYWHITE);
     EndDrawing();
 }
