@@ -93,7 +93,7 @@ typedef struct {
 } Jogo;
 
 // Recorde: cada nó é alocado com malloc (lista encadeada)
-typedef struct Recorde {
+typedef struct Recorde{
     int pontos;
     int fase;
     struct Recorde *prox;
@@ -1274,7 +1274,6 @@ int main(void) {
         }
     }
     liberarRecordes();
-    CloseWindow();
     CloseWindow();
     return 0;
 }
