@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "raylib.h"
 
 void preencherMapaBase(void);
@@ -12,6 +13,11 @@ void abrirCorredor(int linha, int inicio, int fim);
 // e depois escalado para a janela (assim funciona em qualquer resolução).
 #define LARGURA_JOGO (COLUNAS * TAMANHO_CELULA)
 #define ALTURA_JOGO (LINHAS * TAMANHO_CELULA + 60)
+
+// Sprites em pixel art: arte de 20x20 desenhada em 2x (40px por célula).
+#define TAMANHO_SPRITE 20
+#define QUADROS_GELO 4
+#define QUADROS_PEIXE 4
 
 #define PAREDE_NORMAL '#'
 #define PAREDE_GELO 'G'
@@ -109,6 +115,16 @@ Recorde *recordes = NULL;
 // Textura onde o jogo é desenhado na resolução lógica (LARGURA_JOGO x ALTURA_JOGO).
 // No fim do frame ela é desenhada na janela, escalada e centralizada.
 RenderTexture2D alvo;
+
+// Sprites do design (carregados em main, liberados no fim).
+Texture2D spriteChao;
+Texture2D spriteParede;
+Texture2D spriteGelo;
+Texture2D spritePinguim;
+Texture2D spriteFoca;
+Texture2D spriteUrso;
+Texture2D spritePeixe;
+Texture2D spriteFundo;
 
 char mapa[LINHAS][COLUNAS];
 Jogador jogador = {1, 1, 0, 1};
@@ -848,35 +864,340 @@ int jogadorAtingido(void) {
     return 0;
 }
 
+// Procura um sprite em caminhos comuns, para funcionar tanto rodando
+// da raiz do projeto quanto de dentro de src/.
+static const char *caminhoSprite(const char *arquivo) {
+    static char caminho[512];
+    const char *raizes[] = {
+        "assets/sprites",
+        "../assets/sprites",
+        "../../assets/sprites"
+    };
+
+    for (int i = 0; i < (int)(sizeof(raizes) / sizeof(raizes[0])); i++) {
+        snprintf(caminho, sizeof(caminho), "%s/%s", raizes[i], arquivo);
+
+        if (FileExists(caminho)) {
+            return caminho;
+        }
+    }
+
+    snprintf(caminho, sizeof(caminho), "assets/sprites/%s", arquivo);
+    return caminho;
+}
+
+// Desenha um sprite de 20x20 esticado para uma célula de 40x40.
+static void desenharSpriteCelula(Texture2D textura, int quadro,
+                                 int coluna, int linha, Color corFallback) {
+    int x = coluna * TAMANHO_CELULA;
+    int y = linha * TAMANHO_CELULA;
+
+    if (IsTextureValid(textura)) {
+        Rectangle origem = {
+            (float)(quadro * TAMANHO_SPRITE), 0.0f,
+            (float)TAMANHO_SPRITE, (float)TAMANHO_SPRITE
+        };
+        Rectangle destino = {
+            (float)x, (float)y,
+            (float)TAMANHO_CELULA, (float)TAMANHO_CELULA
+        };
+
+        DrawTexturePro(textura, origem, destino,
+                       (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+    } else if (corFallback.a > 0) {
+        DrawRectangle(x, y, TAMANHO_CELULA - 1, TAMANHO_CELULA - 1, corFallback);
+    }
+}
+
+// Escolhe o sprite do pinguim pela última direção e anima quando ele anda.
+static void desenharPinguim(void) {
+    int x = jogador.coluna * TAMANHO_CELULA;
+    int y = jogador.linha * TAMANHO_CELULA;
+
+    // sombra no chão (dá profundidade ao cartoon)
+    DrawEllipse(x + TAMANHO_CELULA / 2, y + 36, 11.0f, 4.0f, Fade(BLACK, 0.18f));
+
+    if (!IsTextureValid(spritePinguim)) {
+        DrawRectangle(x, y, TAMANHO_CELULA - 1, TAMANHO_CELULA - 1, YELLOW);
+        return;
+    }
+
+    int direcao = 0; // 0 frente, 1 costas, 2 esquerda, 3 direita
+
+    if (jogador.direcaoLinha < 0) {
+        direcao = 1;
+    } else if (jogador.direcaoLinha > 0) {
+        direcao = 0;
+    } else if (jogador.direcaoColuna < 0) {
+        direcao = 2;
+    } else if (jogador.direcaoColuna > 0) {
+        direcao = 3;
+    }
+
+    int andando = (GetTime() - tempoUltimoMovimento) < 0.15;
+    int quadro = andando ? ((int)(GetTime() * 8.0) % 2) : 0;
+    int indice = direcao * 2 + quadro;
+
+    Rectangle origem = {
+        (float)(indice * TAMANHO_SPRITE), 0.0f,
+        (float)TAMANHO_SPRITE, (float)TAMANHO_SPRITE
+    };
+    Rectangle destino = {
+        (float)x, (float)y,
+        (float)TAMANHO_CELULA, (float)TAMANHO_CELULA
+    };
+
+    DrawTexturePro(spritePinguim, origem, destino,
+                   (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+}
+
+// Desenha os inimigos: foca (patrulhadora) e urso-polar (perseguidor).
+// A direcao do olhar e o ritmo do passo sao deduzidos da propria posicao,
+// entao nenhuma regra do jogo muda por causa do desenho.
+static void desenharInimigos(void) {
+    static Posicao posicaoVista[MAX_INIMIGOS];
+    static double instantePasso[MAX_INIMIGOS];
+    static int direcaoVista[MAX_INIMIGOS];
+    static int pronto = 0;
+
+    if (!pronto) {
+        for (int i = 0; i < MAX_INIMIGOS; i++) {
+            posicaoVista[i] = inimigos[i].posicao;
+            direcaoVista[i] = 0;
+            instantePasso[i] = -10.0;
+        }
+        pronto = 1;
+    }
+
+    for (int i = 0; i < MAX_INIMIGOS; i++) {
+        if (!inimigos[i].ativo) {
+            continue;
+        }
+
+        int dl = inimigos[i].posicao.linha - posicaoVista[i].linha;
+        int dc = inimigos[i].posicao.coluna - posicaoVista[i].coluna;
+
+        if (dl != 0 || dc != 0) {
+            // Passos de 1 celula viram direcao + animacao. Saltos grandes
+            // (troca de fase) so reposicionam, sem trocar o olhar.
+            if (abs(dl) <= 1 && abs(dc) <= 1) {
+                if (dc != 0) {
+                    direcaoVista[i] = (dc > 0) ? 3 : 2;
+                } else {
+                    direcaoVista[i] = (dl > 0) ? 0 : 1;
+                }
+
+                instantePasso[i] = GetTime();
+            }
+
+            posicaoVista[i] = inimigos[i].posicao;
+        }
+
+        int x = inimigos[i].posicao.coluna * TAMANHO_CELULA;
+        int y = inimigos[i].posicao.linha * TAMANHO_CELULA;
+
+        // sombra no chão (dá profundidade ao cartoon)
+        DrawEllipse(x + TAMANHO_CELULA / 2, y + 36, 11.0f, 4.0f,
+                    Fade(BLACK, 0.18f));
+
+        Texture2D textura = inimigos[i].perseguidor ? spriteUrso : spriteFoca;
+
+        if (!IsTextureValid(textura)) {
+            DrawCircle(x + TAMANHO_CELULA / 2, y + TAMANHO_CELULA / 2,
+                       inimigos[i].perseguidor ? 13 : 9,
+                       inimigos[i].perseguidor ? RED : ORANGE);
+            continue;
+        }
+
+        int andando = (GetTime() - instantePasso[i]) < 0.25;
+        int quadro = andando ? ((int)(GetTime() * 8.0) % 2) : 0;
+        int indice = direcaoVista[i] * 2 + quadro;
+
+        Rectangle origem = {
+            (float)(indice * TAMANHO_SPRITE), 0.0f,
+            (float)TAMANHO_SPRITE, (float)TAMANHO_SPRITE
+        };
+        Rectangle destino = {
+            (float)x, (float)y,
+            (float)TAMANHO_CELULA, (float)TAMANHO_CELULA
+        };
+
+        DrawTexturePro(textura, origem, destino,
+                       (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+    }
+}
+
+// Fundo das telas (menu, recordes, ajustes, fase concluída, game over).
+// O "tinta" multiplica as cores: WHITE mantém o original.
+static void desenharFundo(Color tinta) {
+    ClearBackground(BLACK);
+
+    if (IsTextureValid(spriteFundo)) {
+        DrawTexture(spriteFundo, 0, 0, tinta);
+
+        // Escurece de leve pra garantir leitura dos textos.
+        DrawRectangle(0, 0, LARGURA_JOGO, ALTURA_JOGO, Fade(BLACK, 0.18f));
+    } else {
+        ClearBackground(DARKBLUE);
+    }
+}
+
+// ---- HUD (barra fixa de informações no rodapé) ----
+
+static const Color HUD_TOPO = { 18, 38, 58, 255 };
+static const Color HUD_BASE = { 7, 18, 32, 255 };
+static const Color HUD_GELO = { 124, 180, 214, 255 };
+static const Color HUD_TEXTO = { 236, 247, 255, 255 };
+static const Color HUD_TEXTO_FRACO = { 138, 174, 202, 255 };
+static const Color HUD_BARRA_FUNDO = { 11, 26, 42, 255 };
+static const Color HUD_BARRA_CHEIA = { 96, 214, 246, 255 };
+static const Color HUD_BARRA_BRILHO = { 196, 242, 255, 255 };
+
+// Texto alinhado à esquerda, com a mesma sombra usada nas outras telas.
+static void desenharTextoSombra(const char *texto, int x, int y,
+                                int tamanho, Color cor) {
+    DrawText(texto, x + 2, y + 2, tamanho, Fade(BLACK, 0.55f));
+    DrawText(texto, x, y, tamanho, cor);
+}
+
+// Progresso em blocos: um bloco por peixe da fase.
+static void desenharBarraPeixes(int x, int y, int largura, int altura,
+                                int coletados, int total) {
+    if (total <= 0) {
+        return;
+    }
+
+    int vao = 2;
+    int bloco = (largura - (total - 1) * vao) / total;
+
+    if (bloco < 2) {
+        bloco = 2;
+    }
+    if (total > 20) {
+        // Fases com muitos peixes: blocos finos demais viram ruído.
+        vao = 1;
+        bloco = (largura - (total - 1) * vao) / total;
+
+        if (bloco < 2) {
+            bloco = 2;
+        }
+    }
+
+    for (int i = 0; i < total; i++) {
+        int bx = x + i * (bloco + vao);
+        Rectangle r = { (float)bx, (float)y, (float)bloco, (float)altura };
+
+        if (i < coletados) {
+            DrawRectangleRec(r, HUD_BARRA_CHEIA);
+            DrawRectangle(bx, y, bloco, 3, HUD_BARRA_BRILHO);
+        } else {
+            DrawRectangleRec(r, HUD_BARRA_FUNDO);
+            DrawRectangleLinesEx(r, 1.0f, Fade(HUD_GELO, 0.22f));
+        }
+    }
+}
+
+// Painel de gelo com peixes coletados, pontos, progresso, fase e controles.
+static void desenharHUD(void) {
+    int y0 = LINHAS * TAMANHO_CELULA;
+    int coletados = contarFrutasColetadas();
+
+    // Painel com gradiente, aro de gelo no topo e sombra embaixo.
+    DrawRectangleGradientV(0, y0, LARGURA_JOGO, 60, HUD_TOPO, HUD_BASE);
+    DrawRectangle(0, y0, LARGURA_JOGO, 2, Fade(HUD_GELO, 0.85f));
+    DrawRectangle(0, y0 + 2, LARGURA_JOGO, 1, Fade(HUD_GELO, 0.25f));
+    DrawRectangle(0, y0 + 57, LARGURA_JOGO, 3, Fade(BLACK, 0.55f));
+
+    // Poeira de gelo no painel (posições fixas, sem piscar).
+    for (int i = 0; i < 46; i++) {
+        int px = (i * 197 + 13) % (LARGURA_JOGO - 16) + 8;
+        int py = y0 + 6 + (i * 53) % 46;
+
+        DrawPixel(px, py, Fade(WHITE, 0.06f + (float)(i % 4) * 0.03f));
+    }
+
+    // --- esquerda: peixe animado + coletados/total ---
+    if (IsTextureValid(spritePeixe)) {
+        int quadro = ((int)(GetTime() * 5.0)) % QUADROS_PEIXE;
+        Rectangle origem = {
+            (float)(quadro * TAMANHO_SPRITE), 0.0f,
+            (float)TAMANHO_SPRITE, (float)TAMANHO_SPRITE
+        };
+        Rectangle destino = { 20.0f, (float)(y0 + 10), 40.0f, 40.0f };
+
+        DrawCircle(40, y0 + 30, 21, Fade(BLACK, 0.20f));
+        DrawTexturePro(spritePeixe, origem, destino,
+                       (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+    }
+
+    const char *textoColetados = TextFormat("%d", coletados);
+
+    desenharTextoSombra(textoColetados, 72, y0 + 12, 28, HUD_TEXTO);
+    desenharTextoSombra(TextFormat("/%d", quantidadeFrutasAtivas),
+                        72 + MeasureText(textoColetados, 28) + 4, y0 + 20,
+                        18, HUD_TEXTO_FRACO);
+
+    DrawRectangle(200, y0 + 12, 1, 36, Fade(HUD_GELO, 0.22f));
+
+    // --- meio: pontuação ---
+    desenharTextoSombra("PONTOS", 224, y0 + 6, 10, HUD_TEXTO_FRACO);
+    desenharTextoSombra(TextFormat("%06d", jogo.pontos), 224, y0 + 18, 28,
+                        HUD_TEXTO);
+
+    DrawRectangle(400, y0 + 12, 1, 36, Fade(HUD_GELO, 0.22f));
+
+    // --- progresso em blocos ---
+    desenharTextoSombra("PEIXES", 424, y0 + 6, 10, HUD_TEXTO_FRACO);
+    desenharBarraPeixes(424, y0 + 25, 280, 12, coletados,
+                        quantidadeFrutasAtivas);
+
+    // --- direita: fase e controles ---
+    const char *textoFase = TextFormat("FASE %d", jogo.fase);
+    int badgeLargura = MeasureText(textoFase, 16) + 36;
+    Rectangle badge = {
+        (float)(LARGURA_JOGO - 16 - badgeLargura), (float)(y0 + 10),
+        (float)badgeLargura, 26.0f
+    };
+
+    DrawRectangleRounded(badge, 0.45f, 4, Fade(HUD_GELO, 0.14f));
+    DrawRectangleRoundedLinesEx(badge, 0.45f, 4, 1.0f,
+                                Fade(HUD_GELO, 0.45f));
+    desenharTextoSombra(textoFase,
+                        (int)(badge.x +
+                              (badge.width - MeasureText(textoFase, 16)) / 2),
+                        y0 + 15, 16, HUD_TEXTO);
+
+    const char *controles = "WASD mover  |  K gelo  |  P reconstruir";
+
+    desenharTextoSombra(controles,
+                        LARGURA_JOGO - 16 - MeasureText(controles, 13),
+                        y0 + 41, 13, HUD_TEXTO_FRACO);
+}
+
 void desenharJogo(void) {
     BeginTextureMode(alvo);
     ClearBackground(DARKBLUE);
 
-    // Paredes.
+    // Chão de neve em todas as células.
     for (int l = 0; l < LINHAS; l++) {
         for (int c = 0; c < COLUNAS; c++) {
-            int x = c * TAMANHO_CELULA;
-            int y = l * TAMANHO_CELULA;
+            desenharSpriteCelula(spriteChao, 0, c, l, BLANK);
+        }
+    }
 
+    // Paredes de pedra e blocos de gelo.
+    for (int l = 0; l < LINHAS; l++) {
+        for (int c = 0; c < COLUNAS; c++) {
             if (mapa[l][c] == PAREDE_NORMAL) {
-                DrawRectangle(
-                    x, y,
-                    TAMANHO_CELULA - 1,
-                    TAMANHO_CELULA - 1,
-                    GRAY
-                );
+                desenharSpriteCelula(spriteParede, 0, c, l, GRAY);
             } else if (mapa[l][c] == PAREDE_GELO) {
-                DrawRectangle(
-                    x, y,
-                    TAMANHO_CELULA - 1,
-                    TAMANHO_CELULA - 1,
-                    SKYBLUE
-                );
+                int variante = (l * 7 + c * 13) % QUADROS_GELO;
+                desenharSpriteCelula(spriteGelo, variante, c, l, SKYBLUE);
             }
         }
     }
 
-    // Frutas ainda não coletadas.
+    // Peixes (itens coletáveis) ainda não coletados.
     for (int i = indiceInicialFrutas;
      i < indiceInicialFrutas + quantidadeFrutasAtivas;
      i++) {
@@ -885,76 +1206,37 @@ void desenharJogo(void) {
             int x = frutas[i].coluna * TAMANHO_CELULA;
             int y = frutas[i].linha * TAMANHO_CELULA;
 
-            DrawCircle(
-                x + TAMANHO_CELULA / 2,
-                y + TAMANHO_CELULA / 2,
-                8,
-                RED
-            );
+            if (IsTextureValid(spritePeixe)) {
+                // Cada peixe nada com um pequeno atraso em relação ao vizinho.
+                int quadro = ((int)(GetTime() * 6.0) +
+                              frutas[i].coluna + frutas[i].linha) % QUADROS_PEIXE;
 
-            DrawCircle(x + 18, y + 9, 3, GREEN);
+                DrawEllipse(x + TAMANHO_CELULA / 2, y + 35, 9.0f, 3.5f,
+                            Fade(BLACK, 0.16f));
+
+                desenharSpriteCelula(spritePeixe, quadro,
+                                     frutas[i].coluna, frutas[i].linha, BLANK);
+            } else {
+                DrawCircle(
+                    x + TAMANHO_CELULA / 2,
+                    y + TAMANHO_CELULA / 2,
+                    8,
+                    RED
+                );
+
+                DrawCircle(x + 18, y + 9, 3, GREEN);
+            }
         }
     }
 
-    // Inimigos.
-    for (int i = 0; i < MAX_INIMIGOS; i++) {
-        if (!inimigos[i].ativo) {
-            continue;
-        }
-        int x = inimigos[i].posicao.coluna * TAMANHO_CELULA;
-        int y = inimigos[i].posicao.linha * TAMANHO_CELULA;
+    // Inimigos: foca (patrulha) e urso-polar (perseguidor).
+    desenharInimigos();
 
-        if (inimigos[i].perseguidor) {
-            DrawCircle(
-                x + TAMANHO_CELULA / 2,
-                y + TAMANHO_CELULA / 2,
-                13,
-                RED
-            );
-        } 
-        else {
-            DrawCircle(
-                x + TAMANHO_CELULA / 2,
-                y + TAMANHO_CELULA / 2,
-                9,
-                ORANGE
-            );
-        }
-    }
+    // Jogador (pinguim).
+    desenharPinguim();
 
-    // Jogador.
-    DrawRectangle(
-        jogador.coluna * TAMANHO_CELULA,
-        jogador.linha * TAMANHO_CELULA,
-        TAMANHO_CELULA - 1,
-        TAMANHO_CELULA - 1,
-        YELLOW
-    );
-
-    DrawRectangle(
-        0, LINHAS * TAMANHO_CELULA,
-        COLUNAS * TAMANHO_CELULA, 60,
-        BLACK
-    );
-
-    DrawText(
-        TextFormat("Frutas: %d/%d",
-                   contarFrutasColetadas(), quantidadeFrutasAtivas),
-        15, LINHAS * TAMANHO_CELULA + 8,
-        18, RAYWHITE
-    );
-
-    DrawText(
-    TextFormat("Pontos: %d", jogo.pontos),
-        200, LINHAS * TAMANHO_CELULA + 8,
-        18, RAYWHITE
-    );
-
-    DrawText(
-        "WASD: mover | K: quebrar gelo | P: reconstruir",
-        15, LINHAS * TAMANHO_CELULA + 32,
-        15, RAYWHITE
-    );
+    // Barra fixa de informações no rodapé.
+    desenharHUD();
 
     EndTextureMode();
 }
@@ -962,7 +1244,16 @@ void desenharJogo(void) {
 // Desenha um texto centralizado horizontalmente na janela.
 void desenharTextoCentro(const char *texto, int y, int tamanho, Color cor) {
     int x = (GetRenderWidth() - MeasureText(texto, tamanho)) / 2;
+
+    // Sombra curta: garante leitura sobre o fundo nevado.
+    DrawText(texto, x + 2, y + 2, tamanho, Fade(BLACK, 0.55f));
     DrawText(texto, x, y, tamanho, cor);
+}
+
+// Título com sombra escura atrás: fica legível sobre o fundo nevado.
+void desenharTitulo(const char *texto, int y, int tamanho, Color cor) {
+    desenharTextoCentro(texto, y + 3, tamanho, Fade(BLACK, 0.55f));
+    desenharTextoCentro(texto, y, tamanho, cor);
 }
 
 // Coloca o jogo no começo de uma fase (serve pra começar,
@@ -1128,10 +1419,10 @@ void telaFaseConcluida(void) {
     }
 
     BeginTextureMode(alvo);
-    ClearBackground(DARKBLUE);
-    desenharTextoCentro("FASE CONCLUIDA!", 90, 35, GREEN);
+    desenharFundo(WHITE);
+    desenharTitulo("FASE CONCLUIDA!", 90, 35, GREEN);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 160, 22, RAYWHITE);
-    desenharTextoCentro(TextFormat("Frutas: %d/%d", contarFrutasColetadas(), quantidadeFrutasAtivas),
+    desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadas(), quantidadeFrutasAtivas),
                     195, 22, RAYWHITE);
     desenharTextoCentro("ENTER: proxima fase", 270, 18, RAYWHITE);
     EndTextureMode();
@@ -1147,11 +1438,11 @@ void telaGameOver(void) {
     }
 
     BeginTextureMode(alvo);
-    ClearBackground(DARKBLUE);
-    desenharTextoCentro("FIM DE JOGO!", 90, 35, RED);
+    desenharFundo((Color){ 255, 176, 176, 255 });
+    desenharTitulo("FIM DE JOGO!", 90, 35, RED);
     desenharTextoCentro("Voce foi alcancado por um inimigo.", 140, 20, RAYWHITE);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 190, 22, RAYWHITE);
-    desenharTextoCentro(TextFormat("Frutas: %d/%d", contarFrutasColetadas(), MAX_FRUTAS),
+    desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadas(), MAX_FRUTAS),
                         225, 22, RAYWHITE);
     desenharTextoCentro("ENTER: voltar ao menu", 290, 18, RAYWHITE);
     
@@ -1186,8 +1477,13 @@ void telaMenu(void) {
     }
 
     BeginTextureMode(alvo);
-    ClearBackground(DARKBLUE);
-    desenharTextoCentro("FROSTBITE", 50, 50, SKYBLUE);
+    desenharFundo(WHITE);
+
+    // Painel escuro atrás das opções, pra destacar do fundo nevado.
+    DrawRectangleRounded((Rectangle){ 300, 138, 600, 205 }, 0.08f, 6,
+                         Fade(BLACK, 0.34f));
+
+    desenharTitulo("FROSTBITE", 50, 50, SKYBLUE);
 
     for (int i = 0; i < NUM_OPCOES_MENU; i++) {
         if (i == opcaoMenu) {
@@ -1210,8 +1506,8 @@ void telaAjustes(void) {
     }
 
     BeginTextureMode(alvo);
-    ClearBackground(DARKBLUE);
-    desenharTextoCentro("AJUSTES", 50, 40, GOLD);
+    desenharFundo(WHITE);
+    desenharTitulo("AJUSTES", 50, 40, GOLD);
     desenharTextoCentro("Nenhum ainda.", 160, 22, RAYWHITE);
     desenharTextoCentro("ENTER: voltar ao menu", GetRenderHeight() - 40, 16, RAYWHITE);
     EndTextureMode();
@@ -1224,8 +1520,13 @@ void telaRecordes(void) {
     }
 
     BeginTextureMode(alvo);
-    ClearBackground(DARKBLUE);
-    desenharTextoCentro("RECORDES", 50, 40, GOLD);
+    desenharFundo(WHITE);
+
+    // Painel escuro atrás da lista, pra destacar do fundo nevado.
+    DrawRectangleRounded((Rectangle){ 250, 120, 700, 215 }, 0.08f, 6,
+                         Fade(BLACK, 0.34f));
+
+    desenharTitulo("RECORDES", 50, 40, GOLD);
 
     if (recordes == NULL) {
         desenharTextoCentro("Nenhum recorde ainda.", 160, 22, RAYWHITE);
@@ -1287,8 +1588,31 @@ int main(void) {
     ToggleFullscreen();
 
     // O jogo é desenhado nessa textura (resolução fixa) e escalado para a tela.
+    // Filtro POINT mantém os pixels nítidos (sem borrar o pixel art).
     alvo = LoadRenderTexture(LARGURA_JOGO, ALTURA_JOGO);
-    SetTextureFilter(alvo.texture, TEXTURE_FILTER_BILINEAR);
+    SetTextureFilter(alvo.texture, TEXTURE_FILTER_POINT);
+
+    // Sprites do design (pixel art). Se faltar algum, o desenho cai no
+    // retângulo colorido antigo (não quebra o jogo).
+    spriteChao = LoadTexture(caminhoSprite("chao.png"));
+    spriteParede = LoadTexture(caminhoSprite("parede.png"));
+    spriteGelo = LoadTexture(caminhoSprite("gelo.png"));
+    spritePinguim = LoadTexture(caminhoSprite("pinguim.png"));
+    spriteFoca = LoadTexture(caminhoSprite("foca.png"));
+    spriteUrso = LoadTexture(caminhoSprite("urso.png"));
+    spritePeixe = LoadTexture(caminhoSprite("peixe.png"));
+    spriteFundo = LoadTexture(caminhoSprite("fundo.png"));
+
+    Texture2D sprites[] = {
+        spriteChao, spriteParede, spriteGelo, spritePinguim,
+        spriteFoca, spriteUrso, spritePeixe, spriteFundo
+    };
+
+    for (int i = 0; i < (int)(sizeof(sprites) / sizeof(sprites[0])); i++) {
+        if (IsTextureValid(sprites[i])) {
+            SetTextureFilter(sprites[i], TEXTURE_FILTER_POINT);
+        }
+    }
 
     jogo.estado = MENU;
     jogo.pontos = 0;
@@ -1354,6 +1678,14 @@ int main(void) {
         UnloadMusicStream(musica);
     }
     CloseAudioDevice();
+    UnloadTexture(spriteChao);
+    UnloadTexture(spriteParede);
+    UnloadTexture(spriteGelo);
+    UnloadTexture(spritePinguim);
+    UnloadTexture(spriteFoca);
+    UnloadTexture(spriteUrso);
+    UnloadTexture(spritePeixe);
+    UnloadTexture(spriteFundo);
     UnloadRenderTexture(alvo);
     liberarRecordes();
     CloseWindow();
