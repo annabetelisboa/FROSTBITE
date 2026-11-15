@@ -8,6 +8,11 @@ void abrirCorredor(int linha, int inicio, int fim);
 #define COLUNAS 30
 #define TAMANHO_CELULA 40
 
+// Resolução lógica do jogo. Tudo é desenhado numa textura desse tamanho
+// e depois escalado para a janela (assim funciona em qualquer resolução).
+#define LARGURA_JOGO (COLUNAS * TAMANHO_CELULA)
+#define ALTURA_JOGO (LINHAS * TAMANHO_CELULA + 60)
+
 #define PAREDE_NORMAL '#'
 #define PAREDE_GELO 'G'
 #define CAMINHO ' '
@@ -100,6 +105,10 @@ typedef struct Recorde{
 } Recorde;
 
 Recorde *recordes = NULL;
+
+// Textura onde o jogo é desenhado na resolução lógica (LARGURA_JOGO x ALTURA_JOGO).
+// No fim do frame ela é desenhada na janela, escalada e centralizada.
+RenderTexture2D alvo;
 
 char mapa[LINHAS][COLUNAS];
 Jogador jogador = {1, 1, 0, 1};
@@ -840,7 +849,7 @@ int jogadorAtingido(void) {
 }
 
 void desenharJogo(void) {
-    BeginDrawing();
+    BeginTextureMode(alvo);
     ClearBackground(DARKBLUE);
 
     // Paredes.
@@ -947,12 +956,12 @@ void desenharJogo(void) {
         15, RAYWHITE
     );
 
-    EndDrawing();
+    EndTextureMode();
 }
 
 // Desenha um texto centralizado horizontalmente na janela.
 void desenharTextoCentro(const char *texto, int y, int tamanho, Color cor) {
-    int x = (GetScreenWidth() - MeasureText(texto, tamanho)) / 2;
+    int x = (GetRenderWidth() - MeasureText(texto, tamanho)) / 2;
     DrawText(texto, x, y, tamanho, cor);
 }
 
@@ -1118,14 +1127,14 @@ void telaFaseConcluida(void) {
         jogo.estado = JOGANDO;
     }
 
-    BeginDrawing();
+    BeginTextureMode(alvo);
     ClearBackground(DARKBLUE);
     desenharTextoCentro("FASE CONCLUIDA!", 90, 35, GREEN);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 160, 22, RAYWHITE);
     desenharTextoCentro(TextFormat("Frutas: %d/%d", contarFrutasColetadas(), quantidadeFrutasAtivas),
                     195, 22, RAYWHITE);
     desenharTextoCentro("ENTER: proxima fase", 270, 18, RAYWHITE);
-    EndDrawing();
+    EndTextureMode();
 }
 
 // Tela de game over: ENTER recomeça do zero.
@@ -1137,7 +1146,7 @@ void telaGameOver(void) {
         jogo.estado = MENU;  
     }
 
-    BeginDrawing();
+    BeginTextureMode(alvo);
     ClearBackground(DARKBLUE);
     desenharTextoCentro("FIM DE JOGO!", 90, 35, RED);
     desenharTextoCentro("Voce foi alcancado por um inimigo.", 140, 20, RAYWHITE);
@@ -1146,7 +1155,7 @@ void telaGameOver(void) {
                         225, 22, RAYWHITE);
     desenharTextoCentro("ENTER: voltar ao menu", 290, 18, RAYWHITE);
     
-    EndDrawing();
+    EndTextureMode();
 }
 
 void telaMenu(void) {
@@ -1176,7 +1185,7 @@ void telaMenu(void) {
         }
     }
 
-    BeginDrawing();
+    BeginTextureMode(alvo);
     ClearBackground(DARKBLUE);
     desenharTextoCentro("FROSTBITE", 50, 50, SKYBLUE);
 
@@ -1190,8 +1199,8 @@ void telaMenu(void) {
     }
 
     desenharTextoCentro("Setas ou W/S: escolher | ENTER: confirmar",
-                        GetScreenHeight() - 40, 16, RAYWHITE);
-    EndDrawing();
+                        GetRenderHeight() - 40, 16, RAYWHITE);
+    EndTextureMode();
 }
 
 // Tela de ajustes (vazia por enquanto; o arquivo vem depois).
@@ -1200,12 +1209,12 @@ void telaAjustes(void) {
         jogo.estado = MENU;
     }
 
-    BeginDrawing();
+    BeginTextureMode(alvo);
     ClearBackground(DARKBLUE);
     desenharTextoCentro("AJUSTES", 50, 40, GOLD);
     desenharTextoCentro("Nenhum ainda.", 160, 22, RAYWHITE);
-    desenharTextoCentro("ENTER: voltar ao menu", GetScreenHeight() - 40, 16, RAYWHITE);
-    EndDrawing();
+    desenharTextoCentro("ENTER: voltar ao menu", GetRenderHeight() - 40, 16, RAYWHITE);
+    EndTextureMode();
 }
 
 // Mostra o top 5 lido da lista de recordes.
@@ -1214,7 +1223,7 @@ void telaRecordes(void) {
         jogo.estado = MENU;
     }
 
-    BeginDrawing();
+    BeginTextureMode(alvo);
     ClearBackground(DARKBLUE);
     desenharTextoCentro("RECORDES", 50, 40, GOLD);
 
@@ -1230,29 +1239,88 @@ void telaRecordes(void) {
         }
     }
 
-    desenharTextoCentro("ENTER: voltar ao menu", GetScreenHeight() - 40, 16, RAYWHITE);
-    EndDrawing();
+    desenharTextoCentro("ENTER: voltar ao menu", GetRenderHeight() - 40, 16, RAYWHITE);
+    EndTextureMode();
+}
+
+// Procura a música em caminhos comuns, para funcionar tanto rodando
+// da raiz do projeto quanto de dentro de src/.
+static const char *caminhoDaMusica(void) {
+    const char *opcoes[] = {
+        "assets/musica.mp3",
+        "../assets/musica.mp3",
+        "src/musica.mp3"
+    };
+
+    for (int i = 0; i < (int)(sizeof(opcoes) / sizeof(opcoes[0])); i++) {
+        if (FileExists(opcoes[i])) {
+            return opcoes[i];
+        }
+    }
+
+    return opcoes[0]; // não achou: o jogo segue sem som
+}
+
+// Desenha a textura do jogo centralizada na janela, mantendo a proporção.
+void desenharTelaEscalada(void) {
+    float escalaX = (float)GetScreenWidth() / LARGURA_JOGO;
+    float escalaY = (float)GetScreenHeight() / ALTURA_JOGO;
+    float escala = (escalaX < escalaY) ? escalaX : escalaY;
+
+    float largura = LARGURA_JOGO * escala;
+    float altura = ALTURA_JOGO * escala;
+    float x = (GetScreenWidth() - largura) / 2.0f;
+    float y = (GetScreenHeight() - altura) / 2.0f;
+
+    DrawTexturePro(
+        alvo.texture,
+        (Rectangle){ 0.0f, 0.0f, (float)alvo.texture.width, -(float)alvo.texture.height },
+        (Rectangle){ x, y, largura, altura },
+        (Vector2){ 0.0f, 0.0f },
+        0.0f,
+        WHITE
+    );
 }
 
 int main(void) {
-    InitWindow(
-        COLUNAS * TAMANHO_CELULA,
-        LINHAS * TAMANHO_CELULA + 60,
-        "FROSTBITE"
-    );
+    InitWindow(LARGURA_JOGO, ALTURA_JOGO, "FROSTBITE");
+    ToggleFullscreen();
+
+    // O jogo é desenhado nessa textura (resolução fixa) e escalado para a tela.
+    alvo = LoadRenderTexture(LARGURA_JOGO, ALTURA_JOGO);
+    SetTextureFilter(alvo.texture, TEXTURE_FILTER_BILINEAR);
 
     jogo.estado = MENU;
     jogo.pontos = 0;
     jogo.fase = 1;
 
     SetTargetFPS(60);
-    InitAudioDevice(); // Liga o sistema de som
-    Music musica = LoadMusicStream("musica.mp3"); // Carrega o arquivo MP3
-    PlayMusicStream(musica); // Começa a tocar a música
 
+    InitAudioDevice(); // Liga o sistema de som
+    Music musica = LoadMusicStream(caminhoDaMusica());
+    if (IsMusicValid(musica)) {
+        PlayMusicStream(musica);
+    } else {
+        TraceLog(LOG_WARNING, "MUSICA: nao foi possivel carregar assets/musica.mp3");
+    }
 
     while (!WindowShouldClose() && jogo.estado != SAIR) {
-        UpdateMusicStream(musica); // Atualiza o stream de música
+        if (IsKeyPressed(KEY_F11) || (IsKeyDown(KEY_LEFT_ALT) && IsKeyPressed(KEY_ENTER))) {
+            ToggleFullscreen();
+        }
+
+        if (IsMusicValid(musica)) {
+            UpdateMusicStream(musica); // sem isso a música nunca avança
+
+            if (!IsMusicStreamPlaying(musica)) { // terminou: começa de novo
+                SeekMusicStream(musica, 0.0f);
+                PlayMusicStream(musica);
+            }
+        }
+
+        BeginDrawing();
+        ClearBackground(BLACK);
+
         switch (jogo.estado) {
             case MENU:
                 telaMenu();
@@ -1277,11 +1345,17 @@ int main(void) {
                 jogo.estado = SAIR;
                 break;
         }
-    }
-    liberarRecordes();
-    UnloadMusicStream(musica); // Libera a música da memória
-    CloseAudioDevice();
-    CloseWindow();
 
+        desenharTelaEscalada();
+        EndDrawing();
+    }
+
+    if (IsMusicValid(musica)) {
+        UnloadMusicStream(musica);
+    }
+    CloseAudioDevice();
+    UnloadRenderTexture(alvo);
+    liberarRecordes();
+    CloseWindow();
     return 0;
 }
