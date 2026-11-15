@@ -1246,8 +1246,13 @@ int main(void) {
     jogo.fase = 1;
 
     SetTargetFPS(60);
+    InitAudioDevice(); // Liga o sistema de som
+    Music musica = LoadMusicStream("musica.mp3"); // Carrega o arquivo MP3
+    PlayMusicStream(musica); // Começa a tocar a música
+
 
     while (!WindowShouldClose() && jogo.estado != SAIR) {
+        UpdateMusicStream(musica); // Atualiza o stream de música
         switch (jogo.estado) {
             case MENU:
                 telaMenu();
@@ -1274,6 +1279,9 @@ int main(void) {
         }
     }
     liberarRecordes();
+    UnloadMusicStream(musica); // Libera a música da memória
+    CloseAudioDevice();
     CloseWindow();
+
     return 0;
 }
