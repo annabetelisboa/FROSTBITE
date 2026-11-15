@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "raylib.h"
 
 void preencherMapaBase(void);
@@ -100,6 +101,8 @@ typedef struct Recorde{
 } Recorde;
 
 Recorde *recordes = NULL;
+
+#define ARQUIVO_RECORDE "recordes.txt"
 
 char mapa[LINHAS][COLUNAS];
 Jogador jogador = {1, 1, 0, 1};
@@ -1031,6 +1034,38 @@ void liberarRecordes(void) {
     }
 }
 
+// Carrega os recordes salvos. A inserção mantém a lista ordenada.
+void carregarRecordes(void) {
+    FILE *arquivo = fopen(ARQUIVO_RECORDE, "r");
+    if (arquivo == NULL) {
+        return; // Ainda não existe arquivo de recordes.
+    }
+
+    int pontos;
+    int fase;
+    while (fscanf(arquivo, "%d %d", &pontos, &fase) == 2) {
+        if (pontos >= 0 && fase > 0) {
+            inserirRecorde(pontos, fase);
+        }
+    }
+
+    fclose(arquivo);
+}
+
+// Grava a lista completa em texto, um recorde por linha: pontos fase.
+void salvarRecordes(void) {
+    FILE *arquivo = fopen(ARQUIVO_RECORDE, "w");
+    if (arquivo == NULL) {
+        return;
+    }
+
+    for (Recorde *r = recordes; r != NULL; r = r->prox) {
+        fprintf(arquivo, "%d %d\n", r->pontos, r->fase);
+    }
+
+    fclose(arquivo);
+}
+
 // Lógica de um frame do jogo (sem desenhar).
 void atualizarJogo(void) {
     double intervaloMovimento = 0.13;
@@ -1063,6 +1098,7 @@ void atualizarJogo(void) {
 
     if (jogadorAtingido()) {
         inserirRecorde(jogo.pontos, jogo.fase);
+        salvarRecordes();
         jogo.estado = GAME_OVER;
         return;
     }
@@ -1244,6 +1280,7 @@ int main(void) {
     jogo.estado = MENU;
     jogo.pontos = 0;
     jogo.fase = 1;
+    carregarRecordes();
 
     SetTargetFPS(60);
 
