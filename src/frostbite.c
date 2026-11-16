@@ -161,6 +161,7 @@ Inimigo inimigos[MAX_INIMIGOS];
 Jogo jogo;
 int opcaoMenu = 0;
 double tempoUltimoMovimento = 0.0;
+float volumeMusica = 0.5f;
 
 //manipulação das fases
 const Fase *obterFase(int numero) {
@@ -1533,8 +1534,21 @@ void telaMenu(void) {
     EndTextureMode();
 }
 
-// Tela de ajustes (vazia por enquanto; o arquivo vem depois).
-void telaAjustes(void) {
+// Ajusta o volume da música pelas setas esquerda e direita.
+void telaAjustes(Music musica) {
+    if (IsKeyPressed(KEY_LEFT) && volumeMusica > 0.0f) {
+        volumeMusica -= 0.1f;
+        if (volumeMusica < 0.05f) volumeMusica = 0.0f;
+    }
+    if (IsKeyPressed(KEY_RIGHT) && volumeMusica < 1.0f) {
+        volumeMusica += 0.1f;
+        if (volumeMusica > 0.95f) volumeMusica = 1.0f;
+    }
+
+    if (IsMusicValid(musica)) {
+        SetMusicVolume(musica, volumeMusica);
+    }
+
     if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_BACKSPACE)) {
         jogo.estado = MENU;
     }
@@ -1542,8 +1556,24 @@ void telaAjustes(void) {
     BeginTextureMode(alvo);
     desenharFundo(WHITE);
     desenharTitulo("AJUSTES", 50, 40, GOLD);
-    desenharTextoCentro("Nenhum ainda.", 160, 22, RAYWHITE);
-    desenharTextoCentro("ENTER: voltar ao menu", GetRenderHeight() - 40, 16, RAYWHITE);
+    desenharTextoCentro("Volume da musica", 140, 26, RAYWHITE);
+    desenharTextoCentro(TextFormat("%d%%", (int)(volumeMusica * 100.0f + 0.5f)),
+                        180, 24, YELLOW);
+
+    Rectangle barra = { 390.0f, 225.0f, 420.0f, 24.0f };
+    DrawRectangleRounded(barra, 0.4f, 8, Fade(BLACK, 0.45f));
+    if (volumeMusica > 0.0f) {
+        Rectangle preenchimento = {
+            barra.x, barra.y, barra.width * volumeMusica, barra.height
+        };
+        DrawRectangleRounded(preenchimento, 0.4f, 8, SKYBLUE);
+    }
+
+    desenharTextoCentro("SETA ESQUERDA: diminuir | SETA DIREITA: aumentar",
+                        285, 18, RAYWHITE);
+    desenharTextoCentro("0% desliga a musica", 315, 16, LIGHTGRAY);
+    desenharTextoCentro("ENTER ou BACKSPACE: voltar ao menu",
+                        GetRenderHeight() - 40, 16, RAYWHITE);
     EndTextureMode();
 }
 
@@ -1658,6 +1688,7 @@ int main(void) {
     InitAudioDevice(); // Liga o sistema de som
     Music musica = LoadMusicStream(caminhoDaMusica());
     if (IsMusicValid(musica)) {
+        SetMusicVolume(musica, volumeMusica);
         PlayMusicStream(musica);
     } else {
         TraceLog(LOG_WARNING, "MUSICA: nao foi possivel carregar assets/musica.mp3");
@@ -1695,7 +1726,7 @@ int main(void) {
                 telaGameOver();
                 break;
             case AJUSTES:
-                telaAjustes();
+                telaAjustes(musica);
                 break;
             case RECORDES:
                 telaRecordes();
