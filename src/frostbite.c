@@ -20,6 +20,8 @@ Texture2D spriteFoca;
 Texture2D spriteUrso;
 Texture2D spritePeixe;
 Texture2D spriteFundo;
+Texture2D spriteFim;
+Texture2D logoMenu;
 
 int opcaoMenu = 0;
 double tempoUltimoMovimento = 0.0;
@@ -539,12 +541,18 @@ void atualizarJogo(void) {
     }
 }
 
-// Tela de fase concluída: ENTER vai pra próxima fase.
+// Tela de fase concluída: ENTER vai pra próxima fase (ou pra tela final).
 void telaFaseConcluida(void) {
+    int ultimaFase = (obterFase(jogo.fase + 1) == NULL);
+
     if (IsKeyPressed(KEY_ENTER)) {
-        jogo.fase++;
-        iniciarFase();          // por enquanto repete o mesmo mapa
-        jogo.estado = JOGANDO;
+        if (ultimaFase) {
+            jogo.estado = FIM;
+        } else {
+            jogo.fase++;
+            iniciarFase();          // por enquanto repete o mesmo mapa
+            jogo.estado = JOGANDO;
+        }
     }
 
     BeginTextureMode(alvo);
@@ -553,7 +561,34 @@ void telaFaseConcluida(void) {
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 160, 22, RAYWHITE);
     desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadas(), quantidadeFrutasAtivas),
                     195, 22, RAYWHITE);
-    desenharTextoCentro("ENTER: proxima fase", 270, 18, RAYWHITE);
+    desenharTextoCentro(ultimaFase ? "ENTER: ver final" : "ENTER: proxima fase",
+                    270, 18, RAYWHITE);
+    EndTextureMode();
+}
+
+// Tela final: aparece depois de completar a ultima fase.
+void telaFim(void) {
+    if (IsKeyPressed(KEY_ENTER)) {
+        jogo.pontos = 0;
+        jogo.fase = 1;
+        iniciarFase();
+        jogo.estado = MENU;
+    }
+
+    BeginTextureMode(alvo);
+    ClearBackground(BLACK);
+
+    if (IsTextureValid(spriteFim)) {
+        DrawTexture(spriteFim, 0, 0, WHITE);
+    } else {
+        ClearBackground(DARKBLUE);
+    }
+
+    desenharTitulo("PARABÉNS!", 110, 44, GOLD);
+    desenharTextoCentro("Você completou todas as fases.", 180, 24, RAYWHITE);
+    desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 220, 22, SKYBLUE);
+    desenharTextoCentro("Em breve mais atualizações!", 270, 24, YELLOW);
+    desenharTextoCentro("ENTER: voltar ao menu", 325, 18, RAYWHITE);
     EndTextureMode();
 }
 
@@ -612,7 +647,41 @@ void telaMenu(void) {
     DrawRectangleRounded((Rectangle){ 300, 138, 600, 205 }, 0.08f, 6,
                          Fade(BLACK, 0.34f));
 
-    desenharTitulo("FROSTBITE", 50, 50, SKYBLUE);
+    if (IsTextureValid(logoMenu)) {
+        float larguraLogo = 650.0f;
+        float alturaLogo = larguraLogo * (float)logoMenu.height / logoMenu.width;
+        DrawTexturePro(logoMenu,
+                       (Rectangle){ 0, 0, (float)logoMenu.width, (float)logoMenu.height },
+                       (Rectangle){ (LARGURA_JOGO - larguraLogo) / 2.0f, 42,
+                                    larguraLogo, alturaLogo },
+                       (Vector2){ 0, 0 }, 0, WHITE);
+    } else {
+        Image imagem = LoadImage(caminhoSprite("logo_frostbite.jpg"));
+        if (imagem.data != NULL) {
+            ImageCrop(&imagem, (Rectangle){
+                imagem.width * 0.03f, imagem.height * 0.27f,
+                imagem.width * 0.94f, imagem.height * 0.46f
+            });
+            ImageFormat(&imagem, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+            ImageColorReplace(&imagem, BLACK, BLANK);
+            logoMenu = LoadTextureFromImage(imagem);
+            UnloadImage(imagem);
+
+            if (IsTextureValid(logoMenu)) {
+                float larguraLogo = 650.0f;
+                float alturaLogo = larguraLogo * (float)logoMenu.height / logoMenu.width;
+                DrawTexturePro(logoMenu,
+                               (Rectangle){ 0, 0, (float)logoMenu.width, (float)logoMenu.height },
+                               (Rectangle){ (LARGURA_JOGO - larguraLogo) / 2.0f, 42,
+                                            larguraLogo, alturaLogo },
+                               (Vector2){ 0, 0 }, 0, WHITE);
+            } else {
+                desenharTitulo("FROSTBITE", 50, 50, SKYBLUE);
+            }
+        } else {
+            desenharTitulo("FROSTBITE", 50, 50, SKYBLUE);
+        }
+    }
 
     for (int i = 0; i < NUM_OPCOES_MENU; i++) {
         if (i == opcaoMenu) {
@@ -760,10 +829,11 @@ int main(void) {
     spriteUrso = LoadTexture(caminhoSprite("urso.png"));
     spritePeixe = LoadTexture(caminhoSprite("peixe.png"));
     spriteFundo = LoadTexture(caminhoSprite("fundo.png"));
+    spriteFim = LoadTexture(caminhoSprite("fim.png"));
 
     Texture2D sprites[] = {
         spriteChao, spriteParede, spriteGelo, spritePinguim,
-        spriteFoca, spriteUrso, spritePeixe, spriteFundo
+        spriteFoca, spriteUrso, spritePeixe, spriteFundo, spriteFim
     };
 
     for (int i = 0; i < (int)(sizeof(sprites) / sizeof(sprites[0])); i++) {
@@ -819,6 +889,9 @@ int main(void) {
             case GAME_OVER:
                 telaGameOver();
                 break;
+            case FIM:
+                telaFim();
+                break;
             case AJUSTES:
                 telaAjustes(musica);
                 break;
@@ -846,6 +919,8 @@ int main(void) {
     UnloadTexture(spriteUrso);
     UnloadTexture(spritePeixe);
     UnloadTexture(spriteFundo);
+    UnloadTexture(spriteFim);
+    if (IsTextureValid(logoMenu)) UnloadTexture(logoMenu);
     UnloadRenderTexture(alvo);
     liberarRecordes();
     CloseWindow();

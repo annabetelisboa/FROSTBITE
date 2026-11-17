@@ -16,6 +16,7 @@ depois de editar, é só fechar e abrir o jogo de novo. **Não precisa recompila
 | `urso.png`   | 160×20  | **8 quadros** — inimigo perseguidor |
 | `peixe.png`  | 80×20   | **4 quadros** — item coletável (no lugar da fruta) |
 | `fundo.png`  | 1200×660| fundo das telas (menu, recordes, ajustes, game over) |
+| `fim.png`    | 1200×660| fundo da tela final, após a última fase |
 
 Cada tile de 20×20 é desenhado no jogo em 2× (40×40 px).
 
