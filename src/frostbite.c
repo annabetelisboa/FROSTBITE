@@ -108,7 +108,7 @@ typedef struct Recorde{
     int pontos;
     int fase;
     struct Recorde *prox;
-} Recorde;
+}Recorde;
 
 Recorde *recordes = NULL;
 
@@ -135,7 +135,7 @@ Posicao frutas[MAX_FRUTAS] = {
     {1, 5}, {2, 12}, {4, 3},
     {4, 17}, {6, 24}, {8, 10},
     {10, 5}, {12, 19}, {13, 26},
-    {2, 20}, {6, 14}, {9, 25},
+    {2, 20}, {6, 14}, {2, 16},
     {11, 7},
 
     // Segunda leva: 9 frutas novas
@@ -1333,7 +1333,7 @@ void liberarRecordes(void) {
     }
 }
 
-// Carrega os recordes salvos. A inserção mantém a lista ordenada.
+// Carrega os recordes salvos e mantém a lista ordenada.
 void carregarRecordes(void) {
     FILE *arquivo = fopen(ARQUIVO_RECORDE, "r");
     if (arquivo == NULL) {
