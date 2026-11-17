@@ -379,9 +379,8 @@ void desenharJogo(void) {
 
     // Peixes (itens coletáveis) ainda não coletados.
     for (int i = indiceInicialFrutas;
-     i < indiceInicialFrutas + quantidadeFrutasAtivas;
-     i++) {
-
+         i < indiceInicialFrutas + quantidadeFrutasAtivas;
+         i++) {
         if (!frutaColetada[i]) {
             int x = frutas[i].coluna * TAMANHO_CELULA;
             int y = frutas[i].linha * TAMANHO_CELULA;
@@ -459,11 +458,9 @@ void iniciarFase(void) {
 
     if (config->mapa == 1) {
         inicializarMapaFase1();
-    }
-    else if (config->mapa == 2) {
+    } else if (config->mapa == 2) {
         inicializarMapaFase2();
-    }
-    else if (config->mapa == 3) {
+    } else if (config->mapa == 3) {
         inicializarMapaFase3();
     }
 
@@ -531,7 +528,7 @@ void atualizarJogo(void) {
         }
         // Inicia a terceira leva.
         else if (terceiraLevaFase3 == 0 &&
-                config->frutasTerceiraLeva > 0) {
+                 config->frutasTerceiraLeva > 0) {
 
             terceiraLevaFase3 = 1;
 
@@ -549,9 +546,8 @@ void atualizarJogo(void) {
         // Reinicia o estado das frutas da nova leva.
         if (jogo.estado != FASE_CONCLUIDA) {
             for (int i = indiceInicialFrutas;
-                i < indiceInicialFrutas + quantidadeFrutasAtivas;
-                i++) {
-
+                 i < indiceInicialFrutas + quantidadeFrutasAtivas;
+                 i++) {
                 frutaColetada[i] = 0;
             }
         }
@@ -577,9 +573,9 @@ void telaFaseConcluida(void) {
     desenharTitulo("FASE CONCLUIDA!", 90, 35, GREEN);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 160, 22, RAYWHITE);
     desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadas(), quantidadeFrutasAtivas),
-                    195, 22, RAYWHITE);
+                        195, 22, RAYWHITE);
     desenharTextoCentro(ultimaFase ? "ENTER: ver final" : "ENTER: proxima fase",
-                    270, 18, RAYWHITE);
+                        270, 18, RAYWHITE);
     EndTextureMode();
 }
 
@@ -615,7 +611,7 @@ void telaGameOver(void) {
         jogo.pontos = 0;
         jogo.fase = 1;
         iniciarFase();
-        jogo.estado = MENU;  
+        jogo.estado = MENU;
     }
 
     BeginTextureMode(alvo);
@@ -626,12 +622,11 @@ void telaGameOver(void) {
     desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadas(), MAX_FRUTAS),
                         225, 22, RAYWHITE);
     desenharTextoCentro("ENTER: voltar ao menu", 290, 18, RAYWHITE);
-    
     EndTextureMode();
 }
 
 void telaMenu(void) {
-     const char *opcoes[NUM_OPCOES_MENU] = {"Jogar", "Recordes", "Ajustes", "Sair"};
+    const char *opcoes[NUM_OPCOES_MENU] = {"Jogar", "Recordes", "Ajustes", "Sair"};
 
     // Navegação com setas ou W/S
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {

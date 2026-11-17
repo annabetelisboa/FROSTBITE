@@ -22,7 +22,6 @@ void moverJogador(int direcaoLinha, int direcaoColuna) {
         return;
     }
 
-
     jogador.linha = novaLinha;
     jogador.coluna = novaColuna;
 
@@ -93,4 +92,3 @@ void reconstruirGelo() {
         c += dc;
     }
 }
-

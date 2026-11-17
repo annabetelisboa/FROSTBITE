@@ -30,14 +30,17 @@ void inicializarMapaFase3(void) {
 
     // Corredores verticais
     for (int l = 2; l <= 13; l++) {
-        if (mapa[l][3] != PAREDE_NORMAL)
+        if (mapa[l][3] != PAREDE_NORMAL) {
             mapa[l][3] = CAMINHO;
+        }
 
-        if (mapa[l][14] != PAREDE_NORMAL)
+        if (mapa[l][14] != PAREDE_NORMAL) {
             mapa[l][14] = CAMINHO;
+        }
 
-        if (mapa[l][26] != PAREDE_NORMAL)
+        if (mapa[l][26] != PAREDE_NORMAL) {
             mapa[l][26] = CAMINHO;
+        }
     }
 
     // Área inicial do jogador
@@ -45,7 +48,6 @@ void inicializarMapaFase3(void) {
     mapa[1][2] = CAMINHO;
     mapa[1][3] = CAMINHO;
 }
-
 
 // Cria uma parede horizontal com uma abertura.
 void paredeHorizontal(int linha, int inicio, int fim, int abertura) {
@@ -56,7 +58,6 @@ void paredeHorizontal(int linha, int inicio, int fim, int abertura) {
     }
 }
 
-
 void abrirCorredor(int linha, int inicio, int fim) {
     for (int c = inicio; c <= fim; c++) {
         if (mapa[linha][c] != PAREDE_NORMAL) {
@@ -64,8 +65,8 @@ void abrirCorredor(int linha, int inicio, int fim) {
         }
     }
 }
-void preencherMapaBase(void)
-{
+
+void preencherMapaBase(void) {
     for (int l = 0; l < LINHAS; l++) {
         for (int c = 0; c < COLUNAS; c++) {
             if (l == 0 || l == LINHAS - 1 ||
@@ -114,8 +115,7 @@ void inicializarMapaFase1(void) {
     }
 }
 
-void inicializarMapaFase2(void)
-{
+void inicializarMapaFase2(void) {
     preencherMapaBase();
 
     // Paredes permanentes da fase 2.

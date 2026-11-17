@@ -25,13 +25,13 @@
 #define VELOCIDADE_PERSEGUIDOR 24
 #define MEMORIA_MOVIMENTO 6
 
-//declara a posicao do jogador
+// declara a posicao do jogador
 typedef struct {
     int linha;
     int coluna;
 } Posicao;
 
-//declara a base das fases
+// declara a base das fases
 typedef struct {
     int numero;
     int totalFrutas;
@@ -45,7 +45,7 @@ typedef struct {
     int nivelInteligencia;
 } Fase;
 
-//declara o jogador
+// declara o jogador
 typedef struct {
     int linha;
     int coluna;
@@ -53,7 +53,7 @@ typedef struct {
     int direcaoColuna;
 } Jogador;
 
-//declara o inimigo
+// declara o inimigo
 typedef struct {
     Posicao posicao;
     Posicao posicaoAnterior;
@@ -91,11 +91,11 @@ typedef struct {
 } Jogo;
 
 // Recorde: cada nó é alocado com malloc (lista encadeada)
-typedef struct Recorde{
+typedef struct Recorde {
     int pontos;
     int fase;
     struct Recorde *prox;
-}Recorde;
+} Recorde;
 
 extern Fase fases[];
 extern Jogo jogo;
