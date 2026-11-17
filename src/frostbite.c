@@ -126,6 +126,7 @@ Texture2D spriteFoca;
 Texture2D spriteUrso;
 Texture2D spritePeixe;
 Texture2D spriteFundo;
+Texture2D logoMenu;
 
 char mapa[LINHAS][COLUNAS];
 Jogador jogador = {1, 1, 0, 1};
@@ -1518,7 +1519,41 @@ void telaMenu(void) {
     DrawRectangleRounded((Rectangle){ 300, 138, 600, 205 }, 0.08f, 6,
                          Fade(BLACK, 0.34f));
 
-    desenharTitulo("FROSTBITE", 50, 50, SKYBLUE);
+    if (IsTextureValid(logoMenu)) {
+        float larguraLogo = 650.0f;
+        float alturaLogo = larguraLogo * (float)logoMenu.height / logoMenu.width;
+        DrawTexturePro(logoMenu,
+                       (Rectangle){ 0, 0, (float)logoMenu.width, (float)logoMenu.height },
+                       (Rectangle){ (LARGURA_JOGO - larguraLogo) / 2.0f, 42,
+                                    larguraLogo, alturaLogo },
+                       (Vector2){ 0, 0 }, 0, WHITE);
+    } else {
+        Image imagem = LoadImage(caminhoSprite("logo_frostbite.jpg"));
+        if (imagem.data != NULL) {
+            ImageCrop(&imagem, (Rectangle){
+                imagem.width * 0.03f, imagem.height * 0.27f,
+                imagem.width * 0.94f, imagem.height * 0.46f
+            });
+            ImageFormat(&imagem, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+            ImageColorReplace(&imagem, BLACK, BLANK);
+            logoMenu = LoadTextureFromImage(imagem);
+            UnloadImage(imagem);
+
+            if (IsTextureValid(logoMenu)) {
+                float larguraLogo = 650.0f;
+                float alturaLogo = larguraLogo * (float)logoMenu.height / logoMenu.width;
+                DrawTexturePro(logoMenu,
+                               (Rectangle){ 0, 0, (float)logoMenu.width, (float)logoMenu.height },
+                               (Rectangle){ (LARGURA_JOGO - larguraLogo) / 2.0f, 42,
+                                            larguraLogo, alturaLogo },
+                               (Vector2){ 0, 0 }, 0, WHITE);
+            } else {
+                desenharTitulo("FROSTBITE", 50, 50, SKYBLUE);
+            }
+        } else {
+            desenharTitulo("FROSTBITE", 50, 50, SKYBLUE);
+        }
+    }
 
     for (int i = 0; i < NUM_OPCOES_MENU; i++) {
         if (i == opcaoMenu) {
@@ -1752,6 +1787,7 @@ int main(void) {
     UnloadTexture(spriteUrso);
     UnloadTexture(spritePeixe);
     UnloadTexture(spriteFundo);
+    if (IsTextureValid(logoMenu)) UnloadTexture(logoMenu);
     UnloadRenderTexture(alvo);
     liberarRecordes();
     CloseWindow();
