@@ -49,6 +49,23 @@ static const char *caminhoSprite(const char *arquivo) {
     return caminho;
 }
 
+// Procura um arquivo na raiz do projeto (ou acima), para assets que nao ficam em assets/sprites.
+static const char *caminhoProjeto(const char *arquivo) {
+    static char caminho[512];
+    const char *raizes[] = { "", "../", "../../" };
+
+    for (int i = 0; i < (int)(sizeof(raizes) / sizeof(raizes[0])); i++) {
+        snprintf(caminho, sizeof(caminho), "%s%s", raizes[i], arquivo);
+
+        if (FileExists(caminho)) {
+            return caminho;
+        }
+    }
+
+    snprintf(caminho, sizeof(caminho), "%s", arquivo);
+    return caminho;
+}
+
 // Desenha um sprite de 20x20 esticado para uma célula de 40x40.
 static void desenharSpriteCelula(Texture2D textura, int quadro,
                                  int coluna, int linha, Color corFallback) {
@@ -656,31 +673,7 @@ void telaMenu(void) {
                                     larguraLogo, alturaLogo },
                        (Vector2){ 0, 0 }, 0, WHITE);
     } else {
-        Image imagem = LoadImage(caminhoSprite("logo_frostbite.jpg"));
-        if (imagem.data != NULL) {
-            ImageCrop(&imagem, (Rectangle){
-                imagem.width * 0.03f, imagem.height * 0.27f,
-                imagem.width * 0.94f, imagem.height * 0.46f
-            });
-            ImageFormat(&imagem, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
-            ImageColorReplace(&imagem, BLACK, BLANK);
-            logoMenu = LoadTextureFromImage(imagem);
-            UnloadImage(imagem);
-
-            if (IsTextureValid(logoMenu)) {
-                float larguraLogo = 650.0f;
-                float alturaLogo = larguraLogo * (float)logoMenu.height / logoMenu.width;
-                DrawTexturePro(logoMenu,
-                               (Rectangle){ 0, 0, (float)logoMenu.width, (float)logoMenu.height },
-                               (Rectangle){ (LARGURA_JOGO - larguraLogo) / 2.0f, 42,
-                                            larguraLogo, alturaLogo },
-                               (Vector2){ 0, 0 }, 0, WHITE);
-            } else {
-                desenharTitulo("FROSTBITE", 50, 50, SKYBLUE);
-            }
-        } else {
-            desenharTitulo("FROSTBITE", 50, 50, SKYBLUE);
-        }
+        desenharTitulo("FROSTBITE", 50, 50, SKYBLUE);
     }
 
     for (int i = 0; i < NUM_OPCOES_MENU; i++) {
@@ -830,6 +823,7 @@ int main(void) {
     spritePeixe = LoadTexture(caminhoSprite("peixe.png"));
     spriteFundo = LoadTexture(caminhoSprite("fundo.png"));
     spriteFim = LoadTexture(caminhoSprite("fim.png"));
+    logoMenu = LoadTexture(caminhoProjeto("frostbite-logo.png"));
 
     Texture2D sprites[] = {
         spriteChao, spriteParede, spriteGelo, spritePinguim,
