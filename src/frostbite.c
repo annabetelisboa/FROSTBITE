@@ -562,6 +562,9 @@ void telaFaseConcluida(void) {
 
     if (IsKeyPressed(KEY_ENTER)) {
         if (ultimaFase) {
+            // Zerou o jogo: a pontuação entra nos recordes, como no game over.
+            inserirRecorde(jogo.pontos, jogo.fase);
+            salvarRecordes();
             jogo.estado = FIM;
         } else {
             jogo.fase++;
