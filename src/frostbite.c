@@ -26,6 +26,8 @@ Texture2D logoMenu;
 
 int opcaoMenu = 0;
 int opcaoPausa = 0;
+int confirmandoSaida = 0; // caixa "Sair do jogo?" aberta no menu
+int opcaoSaida = 1;       // 0 = Sim, 1 = Nao (começa no Nao, mais seguro)
 int pontosInicioFase = 0; // pontos ao entrar na fase (usado em "Reiniciar fase")
 double instanteInicioFase = -10.0; // quando a fase começou (aviso "FASE X")
 double instanteNovaLeva = -10.0;   // quando a última leva de peixes surgiu
@@ -504,26 +506,39 @@ void desenharTitulo(const char *texto, int y, int tamanho, Color cor) {
     desenharTextoCentro(texto, y, tamanho, cor);
 }
 
-// Desenha uma opção de menu centralizada. A selecionada ganha "> <", cor
-// amarela e uma barra de gelo arredondada que pulsa de leve.
-static void desenharOpcaoMenu(const char *texto, int y, int tamanho, int selecionada) {
+// Desenha uma opção de menu centralizada no ponto x = "centroX". A
+// selecionada ganha "> <", cor amarela e uma barra de gelo arredondada que
+// pulsa de leve.
+static void desenharOpcaoEm(const char *texto, int centroX, int y, int tamanho,
+                            int selecionada) {
     if (!selecionada) {
-        desenharTextoCentro(texto, y, tamanho, RAYWHITE);
+        int x = (2 * centroX - MeasureText(texto, tamanho)) / 2;
+        DrawText(texto, x + 2, y + 2, tamanho, Fade(BLACK, 0.55f));
+        DrawText(texto, x, y, tamanho, RAYWHITE);
         return;
     }
 
     const char *rotulo = TextFormat("> %s <", texto);
     float pulso = 0.5f + 0.5f * sinf((float)GetTime() * 4.0f); // 0 a 1
-    float largura = (float)MeasureText(rotulo, tamanho) + 48.0f;
+    int larguraTexto = MeasureText(rotulo, tamanho);
+    float largura = (float)larguraTexto + 48.0f;
     Rectangle barra = {
-        (LARGURA_JOGO - largura) / 2.0f, (float)y - 7.0f,
+        centroX - largura / 2.0f, (float)y - 7.0f,
         largura, (float)tamanho + 14.0f
     };
 
     DrawRectangleRounded(barra, 0.5f, 8, Fade(SKYBLUE, 0.16f + 0.10f * pulso));
     DrawRectangleRoundedLinesEx(barra, 0.5f, 8, 2.0f,
                                 Fade(SKYBLUE, 0.45f + 0.35f * pulso));
-    desenharTextoCentro(rotulo, y, tamanho, YELLOW);
+
+    int x = (2 * centroX - larguraTexto) / 2;
+    DrawText(rotulo, x + 2, y + 2, tamanho, Fade(BLACK, 0.55f));
+    DrawText(rotulo, x, y, tamanho, YELLOW);
+}
+
+// Mesma coisa, centralizada na largura do jogo (menu e pausa).
+static void desenharOpcaoMenu(const char *texto, int y, int tamanho, int selecionada) {
+    desenharOpcaoEm(texto, LARGURA_JOGO / 2, y, tamanho, selecionada);
 }
 
 // Selo "NOVO RECORDE!" pulsando, usado nas telas de fim.
@@ -904,27 +919,49 @@ void telaInstrucoes(void) {
 void telaMenu(void) {
     const char *opcoes[NUM_OPCOES_MENU] = {"Jogar", "Como jogar", "Recordes", "Ajustes", "Sair"};
 
-    // Navegação com setas ou W/S
-    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-        opcaoMenu = (opcaoMenu + 1) % NUM_OPCOES_MENU;
-    }
-    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
-        opcaoMenu = (opcaoMenu + NUM_OPCOES_MENU - 1) % NUM_OPCOES_MENU;
-    }
+    if (confirmandoSaida) {
+        // Caixa "Sair do jogo?": só ela responde às teclas.
+        if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_RIGHT) ||
+            IsKeyPressed(KEY_A) || IsKeyPressed(KEY_D)) {
+            opcaoSaida = 1 - opcaoSaida;
+        }
 
-    // Confirmação
-    if (IsKeyPressed(KEY_ENTER)) {
-        if (opcaoMenu == 0) {
-            iniciarNovoJogo();
-            jogo.estado = JOGANDO;
-        } else if (opcaoMenu == 1) {
-            jogo.estado = INSTRUCOES;
-        } else if (opcaoMenu == 2) {
-            jogo.estado = RECORDES;
-        } else if (opcaoMenu == 3) {
-            jogo.estado = AJUSTES;
-        } else {
-            jogo.estado = SAIR;
+        // Sem atalho na tecla S: no menu ela serve para descer, e apertá-la
+        // por costume não pode fechar o jogo.
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            confirmandoSaida = 0;
+        } else if (IsKeyPressed(KEY_ENTER)) {
+            if (opcaoSaida == 0) {
+                jogo.estado = SAIR;
+            } else {
+                confirmandoSaida = 0;
+            }
+        }
+    } else {
+        // Navegação com setas ou W/S
+        if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+            opcaoMenu = (opcaoMenu + 1) % NUM_OPCOES_MENU;
+        }
+        if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+            opcaoMenu = (opcaoMenu + NUM_OPCOES_MENU - 1) % NUM_OPCOES_MENU;
+        }
+
+        // Confirmação
+        if (IsKeyPressed(KEY_ENTER)) {
+            if (opcaoMenu == 0) {
+                iniciarNovoJogo();
+                jogo.estado = JOGANDO;
+            } else if (opcaoMenu == 1) {
+                jogo.estado = INSTRUCOES;
+            } else if (opcaoMenu == 2) {
+                jogo.estado = RECORDES;
+            } else if (opcaoMenu == 3) {
+                jogo.estado = AJUSTES;
+            } else {
+                // "Sair" não fecha direto: abre a confirmação.
+                confirmandoSaida = 1;
+                opcaoSaida = 1;
+            }
         }
     }
 
@@ -951,8 +988,24 @@ void telaMenu(void) {
         desenharOpcaoMenu(opcoes[i], 160 + i * 45, 28, i == opcaoMenu);
     }
 
-    desenharTextoCentro("Setas ou W/S: escolher | ENTER: confirmar",
-                        ALTURA_JOGO - 40, 16, RAYWHITE);
+    if (confirmandoSaida) {
+        DrawRectangle(0, 0, LARGURA_JOGO, ALTURA_JOGO, Fade(BLACK, 0.55f));
+        // Painel opaco: o menu de trás não aparece através da caixa.
+        DrawRectangleRounded((Rectangle){ 380, 200, 440, 200 }, 0.1f, 6,
+                             (Color){ 10, 22, 36, 255 });
+        DrawRectangleRoundedLinesEx((Rectangle){ 380, 200, 440, 200 }, 0.1f, 6,
+                                    2.0f, Fade(SKYBLUE, 0.5f));
+
+        desenharTitulo("Sair do jogo?", 230, 34, SKYBLUE);
+        desenharOpcaoEm("Sim", LARGURA_JOGO / 2 - 100, 320, 28, opcaoSaida == 0);
+        desenharOpcaoEm("Nao", LARGURA_JOGO / 2 + 100, 320, 28, opcaoSaida == 1);
+
+        desenharTextoCentro("Setas ou A/D: escolher | ENTER: confirmar | ESC: cancelar",
+                            ALTURA_JOGO - 40, 16, RAYWHITE);
+    } else {
+        desenharTextoCentro("Setas ou W/S: escolher | ENTER: confirmar",
+                            ALTURA_JOGO - 40, 16, RAYWHITE);
+    }
     EndTextureMode();
 }
 
@@ -1033,6 +1086,37 @@ void telaRecordes(void) {
 // A música fica em assets/. Se não achar, o jogo segue sem som.
 static const char *caminhoDaMusica(void) {
     return procurarArquivo("assets/", "musica.mp3");
+}
+
+// Transição entre telas: quando o estado muda, a tela nova surge de um
+// escurecimento que some em DURACAO_FADE segundos. Só desenho; nenhuma
+// tecla é bloqueada. Pausar/continuar fica instantâneo, sem fade.
+#define DURACAO_FADE 0.3
+
+static void desenharTransicao(void) {
+    static Estado estadoAnterior = MENU;
+    static double instanteTroca = -10.0;
+
+    if (jogo.estado != estadoAnterior) {
+        int pausaOuVolta =
+            (estadoAnterior == JOGANDO && jogo.estado == PAUSADO) ||
+            (estadoAnterior == PAUSADO && jogo.estado == JOGANDO);
+
+        if (!pausaOuVolta) {
+            instanteTroca = GetTime();
+        }
+        estadoAnterior = jogo.estado;
+    }
+
+    double t = GetTime() - instanteTroca;
+
+    if (t >= 0.0 && t < DURACAO_FADE) {
+        float escuro = 1.0f - (float)(t / DURACAO_FADE);
+
+        BeginTextureMode(alvo);
+        DrawRectangle(0, 0, LARGURA_JOGO, ALTURA_JOGO, Fade(BLACK, escuro));
+        EndTextureMode();
+    }
 }
 
 // Desenha a textura do jogo centralizada na janela, mantendo a proporção.
@@ -1160,6 +1244,7 @@ int main(void) {
                 break;
         }
 
+        desenharTransicao();
         desenharTelaEscalada();
         EndDrawing();
     }
