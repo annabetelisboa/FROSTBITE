@@ -420,9 +420,11 @@ void desenharJogo(void) {
     EndTextureMode();
 }
 
-// Desenha um texto centralizado horizontalmente na janela.
+// Desenha um texto centralizado na largura do jogo. Usa LARGURA_JOGO (e não
+// a largura da janela) porque as telas são desenhadas na textura "alvo",
+// que tem resolução fixa e só depois é escalada para a janela.
 void desenharTextoCentro(const char *texto, int y, int tamanho, Color cor) {
-    int x = (GetRenderWidth() - MeasureText(texto, tamanho)) / 2;
+    int x = (LARGURA_JOGO - MeasureText(texto, tamanho)) / 2;
 
     // Sombra curta: garante leitura sobre o fundo nevado.
     DrawText(texto, x + 2, y + 2, tamanho, Fade(BLACK, 0.55f));
@@ -684,7 +686,7 @@ void telaMenu(void) {
     }
 
     desenharTextoCentro("Setas ou W/S: escolher | ENTER: confirmar",
-                        GetRenderHeight() - 40, 16, RAYWHITE);
+                        ALTURA_JOGO - 40, 16, RAYWHITE);
     EndTextureMode();
 }
 
@@ -727,7 +729,7 @@ void telaAjustes(Music musica) {
                         285, 18, RAYWHITE);
     desenharTextoCentro("0% desliga a musica", 315, 16, LIGHTGRAY);
     desenharTextoCentro("ENTER ou BACKSPACE: voltar ao menu",
-                        GetRenderHeight() - 40, 16, RAYWHITE);
+                        ALTURA_JOGO - 40, 16, RAYWHITE);
     EndTextureMode();
 }
 
@@ -758,7 +760,7 @@ void telaRecordes(void) {
         }
     }
 
-    desenharTextoCentro("ENTER: voltar ao menu", GetRenderHeight() - 40, 16, RAYWHITE);
+    desenharTextoCentro("ENTER: voltar ao menu", ALTURA_JOGO - 40, 16, RAYWHITE);
     EndTextureMode();
 }
 
