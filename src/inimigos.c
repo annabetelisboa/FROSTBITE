@@ -220,11 +220,12 @@ void moverInimigos(void) {
                 continue;
             }
 
-            // Não entra na célula de outro inimigo.
+            // Não entra na célula de outro inimigo (inativos não contam).
             int ocupado = 0;
 
             for (int j = 0; j < MAX_INIMIGOS; j++) {
                 if (j != i &&
+                    inimigos[j].ativo &&
                     inimigos[j].posicao.linha == nl &&
                     inimigos[j].posicao.coluna == nc) {
                     ocupado = 1;
