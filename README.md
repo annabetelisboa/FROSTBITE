@@ -108,7 +108,7 @@ e pronto, o labirinto abre em tela cheia ❄️
 
 </div>
 
-> 🌷 o `Makefile` do projeto foi feito pro Windows, então no linux a gente compila com um comandinho só nosso. é rapidinho, prometo!
+> 🌷 no linux o `Makefile` usa a raylib instalada no seu sistema (passo 2), então é só seguir os passos uma vez. é rapidinho, prometo!
 
 ### ✦ passo 1 · ferramentas e bibliotecas (só na primeira vez)
 
@@ -157,14 +157,25 @@ cd FROSTBITE
 ### ✦ passo 4 · compile e jogue 🐟
 
 ```bash
-gcc -std=c11 src/*.c -Iinclude -o frostbite -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
-./frostbite
+make run
 ```
 
 e pronto, o labirinto congelado abre no seu linux ❄️🐧
 
-nas próximas vezes é só rodar `./frostbite` de dentro da pasta `FROSTBITE` 🧸
-(se alguém mudar o código, rode o comando do `gcc` de novo pra atualizar)
+nas próximas vezes é só rodar `make run` de dentro da pasta `FROSTBITE` 🧸
+(ele compila de novo sozinho se alguém mudou o código)
+
+<details>
+<summary>🍓 <b>prefere sem make?</b></summary>
+
+<br>
+
+```bash
+gcc -std=c11 src/*.c -Iinclude -o frostbite -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+./frostbite
+```
+
+</details>
 
 <details>
 <summary>🩵 <b>deu algum probleminha no linux?</b></summary>

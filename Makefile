@@ -2,7 +2,7 @@
 #  FROSTBITE - Makefile (C + Raylib)
 #
 #  Windows (MSYS2/MinGW):   mingw32-make
-#  Linux/macOS:             make
+#  Linux/macOS:             make   (precisa da raylib 6.2 instalada; ver README)
 #
 #  Comandos:
 #    mingw32-make              compila (build de debug)
@@ -27,9 +27,6 @@ OBJ := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
 
 CFLAGS := -std=c11 -Wall -Wextra -I$(INC_DIR)
 
-# raylib estatica + bibliotecas do sistema necessarias no Windows
-LDLIBS := -L$(LIB_DIR) -lraylib -lopengl32 -lgdi32 -lwinmm
-
 ifeq ($(BUILD),release)
   CFLAGS  += -O2
   LDFLAGS += -s
@@ -46,12 +43,21 @@ ifeq ($(OS),Windows_NT)
   RMDIR   = if exist "$(subst /,\,$(1))" rmdir /S /Q "$(subst /,\,$(1))"
   DEL     = if exist "$(subst /,\,$(1))" del /Q "$(subst /,\,$(1))"
   RUN     = $(TARGET)$(EXE)
+  # raylib estatica que vem em lib/ + bibliotecas do sistema do Windows
+  LDLIBS := -L$(LIB_DIR) -lraylib -lopengl32 -lgdi32 -lwinmm
 else
   EXE    :=
   MKDIR   = mkdir -p "$(1)"
   RMDIR   = rm -rf "$(1)"
   DEL     = rm -f "$(1)"
   RUN     = ./$(TARGET)$(EXE)
+  # A lib/ tem a raylib do Windows, entao aqui usamos a raylib instalada
+  # no sistema (sudo make install da raylib 6.2, como no README).
+  ifeq ($(shell uname -s),Darwin)
+    LDLIBS := -lraylib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreAudio -framework CoreVideo
+  else
+    LDLIBS := -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+  endif
 endif
 
 # ---------- Regras ----------
