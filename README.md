@@ -41,7 +41,7 @@ winget install --id Git.Git -e
 winget install --id BrechtSanders.WinLibs.POSIX.UCRT -e
 ```
 
-depois **feche e abra o terminal de novo** pra ele reconhecer as ferramentas novas 🔄
+Depois **feche e abra o terminal de novo** pra ele reconhecer as ferramentas novas  🔄
 
 quer conferir se deu tudo certo? cole:
 
