@@ -199,6 +199,31 @@ static void desenharInimigos(void) {
 
         desenharQuadroSprite(textura, indice, destino);
     }
+
+    // Urso ainda dormindo (contador negativo = frames até começar a
+    // perseguir): mostra "Zz" e os segundos que faltam em cima dele.
+    // Só lê o contador; quem conta é moverPerseguidor().
+    for (int i = 0; i < MAX_INIMIGOS; i++) {
+        if (!inimigos[i].ativo || !inimigos[i].perseguidor ||
+            inimigos[i].contador >= 0) {
+            continue;
+        }
+
+        int segundos = (-inimigos[i].contador + 59) / 60; // arredonda pra cima
+        const char *aviso = TextFormat("Zz %d", segundos);
+        int tamanho = 14;
+        int x = inimigos[i].posicao.coluna * TAMANHO_CELULA +
+                (TAMANHO_CELULA - MeasureText(aviso, tamanho)) / 2;
+        int y = inimigos[i].posicao.linha * TAMANHO_CELULA - 12;
+
+        // Fundinho escuro: o texto fica legível sobre neve, gelo ou parede.
+        Rectangle fundo = {
+            (float)(x - 4), (float)(y - 2),
+            (float)(MeasureText(aviso, tamanho) + 8), (float)(tamanho + 4)
+        };
+        DrawRectangleRounded(fundo, 0.5f, 6, Fade(BLACK, 0.55f));
+        DrawText(aviso, x, y, tamanho, RAYWHITE);
+    }
 }
 
 // Fundo das telas (menu, recordes, ajustes, fase concluída, game over).
