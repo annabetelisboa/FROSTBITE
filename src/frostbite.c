@@ -618,9 +618,13 @@ void telaFim(void) {
     EndTextureMode();
 }
 
-// Tela de game over: ENTER recomeça do zero.
+// Tela de game over: R começa uma nova partida na hora; ENTER volta ao menu.
+// (O recorde já foi salvo no momento em que o jogador foi alcançado.)
 void telaGameOver(void) {
-    if (IsKeyPressed(KEY_ENTER)) {
+    if (IsKeyPressed(KEY_R)) {
+        iniciarNovoJogo();
+        jogo.estado = JOGANDO;
+    } else if (IsKeyPressed(KEY_ENTER)) {
         iniciarNovoJogo();
         jogo.estado = MENU;
     }
@@ -637,7 +641,7 @@ void telaGameOver(void) {
     int totalFase = (faseAtual != NULL) ? faseAtual->totalFrutas : quantidadeFrutasAtivas;
     desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadasFase(totalFase), totalFase),
                         225, 22, RAYWHITE);
-    desenharTextoCentro("ENTER: voltar ao menu", 290, 18, RAYWHITE);
+    desenharTextoCentro("R: jogar de novo  |  ENTER: voltar ao menu", 290, 18, RAYWHITE);
     EndTextureMode();
 }
 
