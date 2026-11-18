@@ -619,7 +619,7 @@ void telaGameOver(void) {
     desenharTitulo("FIM DE JOGO!", 90, 35, RED);
     desenharTextoCentro("Voce foi alcancado por um inimigo.", 140, 20, RAYWHITE);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 190, 22, RAYWHITE);
-    desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadas(), MAX_FRUTAS),
+    desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadas(), quantidadeFrutasAtivas),
                         225, 22, RAYWHITE);
     desenharTextoCentro("ENTER: voltar ao menu", 290, 18, RAYWHITE);
     EndTextureMode();
