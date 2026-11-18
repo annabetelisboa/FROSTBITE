@@ -29,6 +29,7 @@ int opcaoPausa = 0;
 int pontosInicioFase = 0; // pontos ao entrar na fase (usado em "Reiniciar fase")
 double instanteInicioFase = -10.0; // quando a fase começou (aviso "FASE X")
 double instanteNovaLeva = -10.0;   // quando a última leva de peixes surgiu
+int bateuRecorde = 0;              // a partida que acabou passou o 1º lugar?
 double tempoUltimoMovimento = 0.0;
 float volumeMusica = 0.5f;
 
@@ -525,6 +526,23 @@ static void desenharOpcaoMenu(const char *texto, int y, int tamanho, int selecio
     desenharTextoCentro(rotulo, y, tamanho, YELLOW);
 }
 
+// Selo "NOVO RECORDE!" pulsando, usado nas telas de fim.
+static void desenharSeloRecorde(int y) {
+    float pulso = 0.5f + 0.5f * sinf((float)GetTime() * 5.0f); // 0 a 1
+    const char *texto = "NOVO RECORDE!";
+    int tamanho = 26;
+    float largura = (float)MeasureText(texto, tamanho) + 40.0f;
+    Rectangle selo = {
+        (LARGURA_JOGO - largura) / 2.0f, (float)y - 6.0f,
+        largura, (float)tamanho + 12.0f
+    };
+
+    DrawRectangleRounded(selo, 0.5f, 8, Fade(BLACK, 0.45f));
+    DrawRectangleRoundedLinesEx(selo, 0.5f, 8, 2.0f,
+                                Fade(GOLD, 0.55f + 0.45f * pulso));
+    desenharTextoCentro(texto, y, tamanho, GOLD);
+}
+
 // Coloca o jogo no começo de uma fase (serve pra começar,
 // reiniciar e passar de fase).
 void iniciarFase(void) {
@@ -570,9 +588,20 @@ void iniciarFase(void) {
 
 // Começa uma partida do zero: zera os pontos e volta para a fase 1.
 static void iniciarNovoJogo(void) {
+    bateuRecorde = 0;
     jogo.pontos = 0;
     jogo.fase = 1;
     iniciarFase();
+}
+
+// Salva a pontuação da partida que acabou nos recordes. Antes de inserir,
+// confere se ela passa o 1º lugar atual (para o selo "NOVO RECORDE!").
+static void registrarRecorde(void) {
+    bateuRecorde = jogo.pontos > 0 &&
+                   (recordes == NULL || jogo.pontos > recordes->pontos);
+
+    inserirRecorde(jogo.pontos, jogo.fase);
+    salvarRecordes();
 }
 
 // Lógica de um frame do jogo (sem desenhar).
@@ -615,8 +644,7 @@ void atualizarJogo(void) {
     moverPerseguidor();
 
     if (jogadorAtingido()) {
-        inserirRecorde(jogo.pontos, jogo.fase);
-        salvarRecordes();
+        registrarRecorde();
         jogo.estado = GAME_OVER;
         return;
     }
@@ -672,8 +700,7 @@ void telaFaseConcluida(void) {
     if (IsKeyPressed(KEY_ENTER)) {
         if (ultimaFase) {
             // Zerou o jogo: a pontuação entra nos recordes, como no game over.
-            inserirRecorde(jogo.pontos, jogo.fase);
-            salvarRecordes();
+            registrarRecorde();
             jogo.estado = FIM;
         } else {
             jogo.fase++;
@@ -714,6 +741,10 @@ void telaFim(void) {
 
     // Sem acentos: a fonte padrão da raylib só tem caracteres ASCII
     // (o mesmo padrão das outras telas, como "Voce foi alcancado").
+    if (bateuRecorde) {
+        desenharSeloRecorde(55);
+    }
+
     desenharTitulo("PARABENS!", 110, 44, GOLD);
     desenharTextoCentro("Voce completou todas as fases.", 180, 24, RAYWHITE);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 220, 22, SKYBLUE);
@@ -735,6 +766,10 @@ void telaGameOver(void) {
 
     BeginTextureMode(alvo);
     desenharFundo((Color){ 255, 176, 176, 255 });
+    if (bateuRecorde) {
+        desenharSeloRecorde(40);
+    }
+
     desenharTitulo("FIM DE JOGO!", 90, 35, RED);
     desenharTextoCentro("Voce foi alcancado por um inimigo.", 140, 20, RAYWHITE);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 190, 22, RAYWHITE);
