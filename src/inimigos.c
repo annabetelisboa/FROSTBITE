@@ -49,9 +49,9 @@ void inicializarInimigos(void) {
         inimigos[i].ativo = 0;
     }
 
-    const Fase *config = obterFase(jogo.fase);
+    const Fase *faseAtual = obterFase(jogo.fase);
 
-    if (config == NULL) {
+    if (faseAtual == NULL) {
         return;
     }
 
@@ -85,12 +85,12 @@ void inicializarInimigos(void) {
     inimigos[2].ativo = 1;
 
     for (int i = 0; i < 3; i++) {
-        inimigos[i].velocidade = config->velocidadeInimigos;
+        inimigos[i].velocidade = faseAtual->velocidadeInimigos;
     }
 
     inimigos[3].posicao = (Posicao){13, 20};
     inimigos[3].posicaoAnterior = inimigos[3].posicao;
-    inimigos[3].velocidade = config->velocidadePerseguidores;
+    inimigos[3].velocidade = faseAtual->velocidadePerseguidores;
     mapa[13][20] = CAMINHO;
     inimigos[3].perseguidor = 1;
     inimigos[3].contador = -300;
@@ -101,7 +101,7 @@ void inicializarInimigos(void) {
     if (jogo.fase == 3) {
         inimigos[4].posicao = (Posicao){1, 25};
         inimigos[4].posicaoAnterior = inimigos[4].posicao;
-        inimigos[4].velocidade = config->velocidadePerseguidores;
+        inimigos[4].velocidade = faseAtual->velocidadePerseguidores;
         inimigos[4].perseguidor = 1;
         inimigos[4].contador = -450;
         inimigos[4].tamanhoRota = 0;

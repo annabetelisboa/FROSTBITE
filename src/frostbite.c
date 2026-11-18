@@ -572,7 +572,10 @@ void telaFaseConcluida(void) {
     desenharFundo(WHITE);
     desenharTitulo("FASE CONCLUIDA!", 90, 35, GREEN);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 160, 22, RAYWHITE);
-    desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadas(), quantidadeFrutasAtivas),
+
+    const Fase *faseAtual = obterFase(jogo.fase);
+    int totalFase = (faseAtual != NULL) ? faseAtual->totalFrutas : quantidadeFrutasAtivas;
+    desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadasFase(totalFase), totalFase),
                         195, 22, RAYWHITE);
     desenharTextoCentro(ultimaFase ? "ENTER: ver final" : "ENTER: proxima fase",
                         270, 18, RAYWHITE);

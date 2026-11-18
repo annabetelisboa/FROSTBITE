@@ -7,19 +7,19 @@
 Recorde *recordes = NULL;
 
 Posicao frutas[MAX_FRUTAS] = {
-    // Primeira leva: 13 frutas
+    // Primeira leva: 9 frutas (indices 0 a 8)
     {1, 5}, {2, 12}, {4, 3},
     {4, 17}, {6, 24}, {8, 10},
     {10, 5}, {12, 19}, {13, 26},
+
+    // Segunda leva: 13 frutas (indices 9 a 21)
     {2, 20}, {6, 14}, {2, 16},
     {11, 7},
-
-    // Segunda leva: 9 frutas novas
     {1, 10}, {3, 25}, {5, 6},
     {7, 22}, {9, 3}, {10, 17},
     {11, 25}, {13, 15}, {12, 5},
 
-    // Terceira leva: 5 frutas novas
+    // Terceira leva: 5 frutas (indices 22 a 26)
     {2, 8},
     {2, 24},
     {8, 5},
@@ -73,6 +73,16 @@ int contarFrutasColetadas(void) {
     }
 
     return total;
+}
+
+int contarFrutasColetadasFase(int total){
+    int totalcoletados=0;
+    for (int i=0;i<total && i<MAX_FRUTAS;i++){
+        if (frutaColetada[i]){
+            totalcoletados++;
+        }
+    }
+    return totalcoletados;
 }
 
 // Insere um recorde mantendo a lista ordenada (maior pontuação primeiro).

@@ -42,7 +42,6 @@ typedef struct {
     float velocidadeInimigos;
     float velocidadePerseguidores;
     int quantidadePerseguidores;
-    int nivelInteligencia;
 } Fase;
 
 // declara o jogador
