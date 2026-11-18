@@ -193,8 +193,10 @@ nas próximas vezes é só rodar `./frostbite` de dentro da pasta `FROSTBITE` �
 | <kbd>↑</kbd> <kbd>↓</kbd> ou <kbd>W</kbd> <kbd>S</kbd> | escolher opção no menu |
 | <kbd>Enter</kbd> | confirmar |
 | <kbd>←</kbd> <kbd>→</kbd> | volume da música, na tela de ajustes 🎵 |
+| <kbd>Esc</kbd> | pausar / continuar a partida ⏸️ |
+| <kbd>R</kbd> | jogar de novo, na tela de fim de jogo 🔁 |
 | <kbd>F11</kbd> ou <kbd>Alt</kbd> + <kbd>Enter</kbd> | tela cheia / janela |
-| <kbd>Esc</kbd> | sair do jogo |
+| opção **Sair** do menu ou <kbd>Alt</kbd> + <kbd>F4</kbd> | sair do jogo |
 
 </div>
 
