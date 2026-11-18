@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 #include "raylib.h"
 #include "estrutura.h"
 #include "jogador.h"
@@ -425,6 +426,28 @@ void desenharTitulo(const char *texto, int y, int tamanho, Color cor) {
     desenharTextoCentro(texto, y, tamanho, cor);
 }
 
+// Desenha uma opção de menu centralizada. A selecionada ganha "> <", cor
+// amarela e uma barra de gelo arredondada que pulsa de leve.
+static void desenharOpcaoMenu(const char *texto, int y, int tamanho, int selecionada) {
+    if (!selecionada) {
+        desenharTextoCentro(texto, y, tamanho, RAYWHITE);
+        return;
+    }
+
+    const char *rotulo = TextFormat("> %s <", texto);
+    float pulso = 0.5f + 0.5f * sinf((float)GetTime() * 4.0f); // 0 a 1
+    float largura = (float)MeasureText(rotulo, tamanho) + 48.0f;
+    Rectangle barra = {
+        (LARGURA_JOGO - largura) / 2.0f, (float)y - 7.0f,
+        largura, (float)tamanho + 14.0f
+    };
+
+    DrawRectangleRounded(barra, 0.5f, 8, Fade(SKYBLUE, 0.16f + 0.10f * pulso));
+    DrawRectangleRoundedLinesEx(barra, 0.5f, 8, 2.0f,
+                                Fade(SKYBLUE, 0.45f + 0.35f * pulso));
+    desenharTextoCentro(rotulo, y, tamanho, YELLOW);
+}
+
 // Coloca o jogo no começo de uma fase (serve pra começar,
 // reiniciar e passar de fase).
 void iniciarFase(void) {
@@ -689,12 +712,7 @@ void telaPausa(void) {
     desenharTitulo("PAUSADO", 175, 40, SKYBLUE);
 
     for (int i = 0; i < NUM_OPCOES_PAUSA; i++) {
-        if (i == opcaoPausa) {
-            desenharTextoCentro(TextFormat("> %s <", opcoes[i]),
-                                250 + i * 45, 26, YELLOW);
-        } else {
-            desenharTextoCentro(opcoes[i], 250 + i * 45, 26, RAYWHITE);
-        }
+        desenharOpcaoMenu(opcoes[i], 250 + i * 45, 26, i == opcaoPausa);
     }
 
     desenharTextoCentro("Setas ou W/S: escolher | ENTER: confirmar | ESC: continuar",
@@ -747,12 +765,7 @@ void telaMenu(void) {
     }
 
     for (int i = 0; i < NUM_OPCOES_MENU; i++) {
-        if (i == opcaoMenu) {
-            desenharTextoCentro(TextFormat("> %s <", opcoes[i]),
-                                160 + i * 45, 28, YELLOW);
-        } else {
-            desenharTextoCentro(opcoes[i], 160 + i * 45, 28, RAYWHITE);
-        }
+        desenharOpcaoMenu(opcoes[i], 160 + i * 45, 28, i == opcaoMenu);
     }
 
     desenharTextoCentro("Setas ou W/S: escolher | ENTER: confirmar",
