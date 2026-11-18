@@ -9,16 +9,15 @@ Fase fases[] = {
 
 Jogo jogo;
 
-//manipulação das fases
+// manipulação das fases
 const Fase *obterFase(int numero) {
-
     int quantidadeFases = sizeof(fases) / sizeof(fases[0]);
 
     for (int i = 0; i < quantidadeFases; i++) {
-
         if (fases[i].numero == numero) {
             return &fases[i];
         }
     }
+
     return NULL;
 }

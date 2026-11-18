@@ -75,7 +75,6 @@ int contarFrutasColetadas(void) {
     return total;
 }
 
-
 // Insere um recorde mantendo a lista ordenada (maior pontuação primeiro).
 void inserirRecorde(int pontos, int fase) {
     Recorde *novo = malloc(sizeof(Recorde));

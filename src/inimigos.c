@@ -27,6 +27,7 @@ int existeInimigo(int linha, int coluna) {
 
     return 0;
 }
+
 // Define uma rota fixa para cada inimigo.
 void definirRota(int indice, const Posicao rota[], int tamanho) {
     inimigos[indice].tamanhoRota = tamanho;
@@ -47,11 +48,13 @@ void inicializarInimigos(void) {
     for (int i = 0; i < MAX_INIMIGOS; i++) {
         inimigos[i].ativo = 0;
     }
+
     const Fase *config = obterFase(jogo.fase);
 
     if (config == NULL) {
         return;
     }
+
     // Inimigo 1: patrulha a região abaixo da barreira de gelo.
     Posicao rota1[] = {
         {6,2}, {6,3}, {6,4}, {6,5},
@@ -107,6 +110,7 @@ void inicializarInimigos(void) {
 
         mapa[1][25] = CAMINHO;
     }
+
     // Inicializa a memória de movimento dos inimigos.
     for (int i = 0; i < MAX_INIMIGOS; i++) {
         inimigos[i].quantidadeHistorico = 0;
@@ -124,6 +128,7 @@ void prepararRotasInimigos(void) {
         if (!inimigos[i].ativo) {
             continue;
         }
+
         for (int j = 0; j < inimigos[i].tamanhoRota; j++) {
             int l = inimigos[i].rota[j].linha;
             int c = inimigos[i].rota[j].coluna;
@@ -143,7 +148,6 @@ Posicao escolherMovimentoInteligente(Posicao opcoes[], int quantidade, int indic
     int encontrou = 0;
 
     for (int i = 0; i < quantidade; i++) {
-
         int ehPosicaoAnterior =
             opcoes[i].linha == inimigos[indiceInimigo].posicaoAnterior.linha &&
             opcoes[i].coluna == inimigos[indiceInimigo].posicaoAnterior.coluna;
@@ -276,7 +280,7 @@ void moverInimigos(void) {
     }
 }
 
-int buscarProximoPasso(Posicao origem, Posicao destino,Posicao *proximoPasso) {
+int buscarProximoPasso(Posicao origem, Posicao destino, Posicao *proximoPasso) {
     int visitado[LINHAS][COLUNAS] = {0};
     Posicao primeiro[LINHAS][COLUNAS];
     Posicao fila[LINHAS * COLUNAS];
@@ -373,7 +377,7 @@ void moverPerseguidor(void) {
         inimigos[i].contador++;
 
         if (inimigos[i].contador < inimigos[i].velocidade) {
-        continue;
+            continue;
         }
 
         inimigos[i].contador = 0;
