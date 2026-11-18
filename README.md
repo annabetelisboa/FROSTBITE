@@ -92,7 +92,90 @@ e pronto, o labirinto abre em tela cheia ❄️
 - **"mingw32-make não é reconhecido"** → feche e abra o terminal de novo. se continuar, reinstale o passo 1
 - **o jogo abriu sem imagens ou sem música** → rode o jogo de dentro da pasta `FROSTBITE`, que é onde fica a pasta `assets`
 - **o botão ▶ / F5 do VS Code dá erro** → use o terminal com `mingw32-make run`, que é ele quem sabe onde está a raylib
-- **o jogo só funciona no Windows** por enquanto, porque a raylib que vem no projeto é a versão pra Windows
+- **tá no linux?** → os passos acima são pro Windows. pule pra seção [🐧 jogando no linux](#-jogando-no-linux) logo abaixo 💙
+
+</details>
+
+<br>
+
+## 🐧 jogando no linux
+
+<div align="center">
+
+˚₊‧꒰ა ☆ ໒꒱ ‧₊˚
+
+*sim, o pinguim também mora no linux!* 🐧💙
+
+</div>
+
+> 🌷 o `Makefile` do projeto foi feito pro Windows, então no linux a gente compila com um comandinho só nosso. é rapidinho, prometo!
+
+### ✦ passo 1 · ferramentas e bibliotecas (só na primeira vez)
+
+escolha a sua distro e cole no terminal 🎀
+
+**🍥 ubuntu / debian / mint**
+
+```bash
+sudo apt update
+sudo apt install build-essential git libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev
+```
+
+**🍡 fedora**
+
+```bash
+sudo dnf install gcc make git alsa-lib-devel mesa-libGL-devel libX11-devel libXrandr-devel libXi-devel libXcursor-devel libXinerama-devel libatomic
+```
+
+**🍙 arch / manjaro**
+
+```bash
+sudo pacman -S base-devel git alsa-lib mesa libx11 libxrandr libxi libxcursor libxinerama
+```
+
+### ✦ passo 2 · instale a raylib 6.2 (só na primeira vez)
+
+o jogo usa a raylib **6.2**, então a gente instala exatamente essa versãozinha 🌸
+
+```bash
+git clone --depth 1 --branch 6.2 https://github.com/raysan5/raylib.git ~/raylib-6.2
+cd ~/raylib-6.2/src
+make PLATFORM=PLATFORM_DESKTOP
+sudo make install
+cd ~
+```
+
+> 💭 *por que não instalar pela loja de pacotes?* as versões de lá podem ser mais antigas que a 6.2, e aí o jogo não compila. assim fica tudo certinho ✨
+
+### ✦ passo 3 · baixe o jogo
+
+```bash
+git clone https://github.com/annabetelisboa/FROSTBITE.git
+cd FROSTBITE
+```
+
+### ✦ passo 4 · compile e jogue 🐟
+
+```bash
+gcc -std=c11 src/*.c -Iinclude -o frostbite -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
+./frostbite
+```
+
+e pronto, o labirinto congelado abre no seu linux ❄️🐧
+
+nas próximas vezes é só rodar `./frostbite` de dentro da pasta `FROSTBITE` 🧸
+(se alguém mudar o código, rode o comando do `gcc` de novo pra atualizar)
+
+<details>
+<summary>🩵 <b>deu algum probleminha no linux?</b></summary>
+
+<br>
+
+- **`raylib.h: No such file or directory` ou `cannot find -lraylib`** → a raylib não foi instalada. refaça o passo 2 e veja se o `sudo make install` terminou sem erro
+- **erro com `X11/Xlib.h` ou `GL/gl.h` no passo 2** → faltou alguma biblioteca do passo 1. cole o comando da sua distro de novo
+- **o jogo abriu sem imagens ou sem música** → rode o `./frostbite` de dentro da pasta `FROSTBITE`, que é onde fica a pasta `assets`
+- **o jogo abriu mas sem som** → confira se o som do sistema está funcionando. o jogo continua normalzinho mesmo sem áudio
+- **testado no ubuntu 24.04** 🍥 em outras distros os passos são os mesmos, só muda o comando do passo 1
 
 </details>
 
