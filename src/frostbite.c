@@ -605,10 +605,12 @@ void telaFim(void) {
         ClearBackground(DARKBLUE);
     }
 
-    desenharTitulo("PARABÉNS!", 110, 44, GOLD);
-    desenharTextoCentro("Você completou todas as fases.", 180, 24, RAYWHITE);
+    // Sem acentos: a fonte padrão da raylib só tem caracteres ASCII
+    // (o mesmo padrão das outras telas, como "Voce foi alcancado").
+    desenharTitulo("PARABENS!", 110, 44, GOLD);
+    desenharTextoCentro("Voce completou todas as fases.", 180, 24, RAYWHITE);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 220, 22, SKYBLUE);
-    desenharTextoCentro("Em breve mais atualizações!", 270, 24, YELLOW);
+    desenharTextoCentro("Em breve mais atualizacoes!", 270, 24, YELLOW);
     desenharTextoCentro("ENTER: voltar ao menu", 325, 18, RAYWHITE);
     EndTextureMode();
 }
