@@ -563,7 +563,7 @@ void telaFaseConcluida(void) {
             jogo.estado = FIM;
         } else {
             jogo.fase++;
-            iniciarFase();          // por enquanto repete o mesmo mapa
+            iniciarFase();          // carrega o mapa e os inimigos da nova fase
             jogo.estado = JOGANDO;
         }
     }

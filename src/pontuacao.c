@@ -6,6 +6,9 @@
 
 Recorde *recordes = NULL;
 
+// As levas marcadas abaixo são as da Fase 3. A Fase 1 usa só os índices
+// 0 a 8, e a Fase 2 usa 0 a 12 e depois 13 a 21 (quantidades na tabela
+// fases[], em estrutura.c).
 Posicao frutas[MAX_FRUTAS] = {
     // Primeira leva: 9 frutas (indices 0 a 8)
     {1, 5}, {2, 12}, {4, 3},

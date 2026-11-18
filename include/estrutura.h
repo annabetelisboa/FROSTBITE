@@ -25,7 +25,7 @@
 #define VELOCIDADE_PERSEGUIDOR 24
 #define MEMORIA_MOVIMENTO 6
 
-// declara a posicao do jogador
+// posição (linha, coluna) de uma célula do mapa
 typedef struct {
     int linha;
     int coluna;
