@@ -24,6 +24,8 @@ Texture2D spriteFim;
 Texture2D logoMenu;
 
 int opcaoMenu = 0;
+int opcaoPausa = 0;
+int pontosInicioFase = 0; // pontos ao entrar na fase (usado em "Reiniciar fase")
 double tempoUltimoMovimento = 0.0;
 float volumeMusica = 0.5f;
 
@@ -333,7 +335,7 @@ static void desenharHUD(void) {
                               (badge.width - MeasureText(textoFase, 16)) / 2),
                         y0 + 15, 16, HUD_TEXTO);
 
-    const char *controles = "WASD mover  |  K gelo  |  P reconstruir";
+    const char *controles = "WASD mover  |  K gelo  |  P reconstruir  |  ESC pausar";
 
     desenharTextoSombra(controles,
                         LARGURA_JOGO - 16 - MeasureText(controles, 13),
@@ -427,6 +429,7 @@ void desenharTitulo(const char *texto, int y, int tamanho, Color cor) {
 // reiniciar e passar de fase).
 void iniciarFase(void) {
     jogador = (Jogador){1, 1, 0, 1};
+    pontosInicioFase = jogo.pontos;
 
     const Fase *config = obterFase(jogo.fase);
 
@@ -472,6 +475,13 @@ static void iniciarNovoJogo(void) {
 
 // Lógica de um frame do jogo (sem desenhar).
 void atualizarJogo(void) {
+    // ESC pausa antes de qualquer atualização: nada se move neste frame.
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        opcaoPausa = 0;
+        jogo.estado = PAUSADO;
+        return;
+    }
+
     double intervaloMovimento = 0.13;
 
     if (GetTime() - tempoUltimoMovimento >= intervaloMovimento) {
@@ -626,6 +636,63 @@ void telaGameOver(void) {
     desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadasFase(totalFase), totalFase),
                         225, 22, RAYWHITE);
     desenharTextoCentro("ENTER: voltar ao menu", 290, 18, RAYWHITE);
+    EndTextureMode();
+}
+
+// Menu de pausa. Enquanto o estado é PAUSADO o loop não chama
+// atualizarJogo(), então inimigos, contadores e o tempo de espera do urso
+// ficam congelados; pontos, fase, posição e peixes continuam como estavam.
+#define NUM_OPCOES_PAUSA 3
+
+void telaPausa(void) {
+    const char *opcoes[NUM_OPCOES_PAUSA] = {"Continuar", "Reiniciar fase", "Voltar ao menu"};
+
+    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+        opcaoPausa = (opcaoPausa + 1) % NUM_OPCOES_PAUSA;
+    }
+    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)) {
+        opcaoPausa = (opcaoPausa + NUM_OPCOES_PAUSA - 1) % NUM_OPCOES_PAUSA;
+    }
+
+    if (IsKeyPressed(KEY_ESCAPE)) {
+        jogo.estado = JOGANDO;
+    } else if (IsKeyPressed(KEY_ENTER)) {
+        if (opcaoPausa == 0) {
+            jogo.estado = JOGANDO;
+        } else if (opcaoPausa == 1) {
+            // Volta para o começo da fase com os pontos que tinha ao entrar
+            // nela (não dá para acumular pontos reiniciando).
+            jogo.pontos = pontosInicioFase;
+            iniciarFase();
+            jogo.estado = JOGANDO;
+        } else {
+            // Sair pela pausa descarta a partida: não entra nos recordes.
+            iniciarNovoJogo();
+            jogo.estado = MENU;
+        }
+    }
+
+    // Fundo: a partida congelada, exatamente como estava.
+    desenharJogo();
+
+    BeginTextureMode(alvo);
+    DrawRectangle(0, 0, LARGURA_JOGO, ALTURA_JOGO, Fade(BLACK, 0.55f));
+    DrawRectangleRounded((Rectangle){ 380, 150, 440, 290 }, 0.08f, 6,
+                         Fade(BLACK, 0.45f));
+
+    desenharTitulo("PAUSADO", 175, 40, SKYBLUE);
+
+    for (int i = 0; i < NUM_OPCOES_PAUSA; i++) {
+        if (i == opcaoPausa) {
+            desenharTextoCentro(TextFormat("> %s <", opcoes[i]),
+                                250 + i * 45, 26, YELLOW);
+        } else {
+            desenharTextoCentro(opcoes[i], 250 + i * 45, 26, RAYWHITE);
+        }
+    }
+
+    desenharTextoCentro("Setas ou W/S: escolher | ENTER: confirmar | ESC: continuar",
+                        ALTURA_JOGO - 40, 16, RAYWHITE);
     EndTextureMode();
 }
 
@@ -791,6 +858,10 @@ int main(void) {
     InitWindow(LARGURA_JOGO, ALTURA_JOGO, "FROSTBITE");
     ToggleFullscreen();
 
+    // ESC é a tecla de pausa; sem isso a raylib fecha o jogo ao apertá-la.
+    // Para sair: opção "Sair" do menu ou fechar a janela (Alt+F4).
+    SetExitKey(KEY_NULL);
+
     // O jogo é desenhado nessa textura (resolução fixa) e escalado para a tela.
     // Filtro POINT mantém os pixels nítidos (sem borrar o pixel art).
     alvo = LoadRenderTexture(LARGURA_JOGO, ALTURA_JOGO);
@@ -875,6 +946,9 @@ int main(void) {
                 break;
             case RECORDES:
                 telaRecordes();
+                break;
+            case PAUSADO:
+                telaPausa();
                 break;
             default:
                 jogo.estado = SAIR;

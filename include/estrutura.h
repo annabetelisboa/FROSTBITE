@@ -79,6 +79,7 @@ typedef enum {
     FIM,
     RECORDES,
     AJUSTES,
+    PAUSADO,
     SAIR,
 } Estado;
 
