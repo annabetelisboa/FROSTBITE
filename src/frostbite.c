@@ -476,7 +476,9 @@ static void iniciarNovoJogo(void) {
 // Lógica de um frame do jogo (sem desenhar).
 void atualizarJogo(void) {
     // ESC pausa antes de qualquer atualização: nada se move neste frame.
-    if (IsKeyPressed(KEY_ESCAPE)) {
+    // Também pausa sozinho se a janela perder o foco (ex.: Alt+Tab), para
+    // o jogador não ser pego por um inimigo enquanto está em outra janela.
+    if (IsKeyPressed(KEY_ESCAPE) || !IsWindowFocused()) {
         opcaoPausa = 0;
         jogo.estado = PAUSADO;
         return;
