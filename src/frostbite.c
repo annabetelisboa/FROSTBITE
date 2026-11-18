@@ -27,6 +27,7 @@ Texture2D logoMenu;
 int opcaoMenu = 0;
 int opcaoPausa = 0;
 int pontosInicioFase = 0; // pontos ao entrar na fase (usado em "Reiniciar fase")
+double instanteInicioFase = -10.0; // quando a fase começou (aviso "FASE X")
 double tempoUltimoMovimento = 0.0;
 float volumeMusica = 0.5f;
 
@@ -368,6 +369,40 @@ static void desenharHUD(void) {
                         y0 + 41, 13, HUD_TEXTO_FRACO);
 }
 
+// Aviso "FASE X / prepare-se!" nos primeiros segundos de cada fase.
+// É só desenho: o jogo segue normalmente por baixo.
+#define DURACAO_AVISO_FASE 2.2
+#define DURACAO_SUMIR_AVISO 0.5
+
+static void desenharAvisoFase(void) {
+    double t = GetTime() - instanteInicioFase;
+
+    if (t < 0.0 || t >= DURACAO_AVISO_FASE) {
+        return;
+    }
+
+    // Opaco no começo e some aos poucos no final.
+    float a = 1.0f;
+    if (t > DURACAO_AVISO_FASE - DURACAO_SUMIR_AVISO) {
+        a = (float)((DURACAO_AVISO_FASE - t) / DURACAO_SUMIR_AVISO);
+    }
+
+    int yFaixa = LINHAS * TAMANHO_CELULA / 2 - 60;
+    DrawRectangle(0, yFaixa, LARGURA_JOGO, 120, Fade(BLACK, 0.45f * a));
+    DrawRectangle(0, yFaixa, LARGURA_JOGO, 2, Fade(SKYBLUE, 0.7f * a));
+    DrawRectangle(0, yFaixa + 118, LARGURA_JOGO, 2, Fade(SKYBLUE, 0.7f * a));
+
+    const char *titulo = TextFormat("FASE %d", jogo.fase);
+    int xTitulo = (LARGURA_JOGO - MeasureText(titulo, 50)) / 2;
+    DrawText(titulo, xTitulo + 3, yFaixa + 18, 50, Fade(BLACK, 0.55f * a));
+    DrawText(titulo, xTitulo, yFaixa + 15, 50, Fade(SKYBLUE, a));
+
+    const char *subtitulo = "prepare-se!";
+    int xSub = (LARGURA_JOGO - MeasureText(subtitulo, 22)) / 2;
+    DrawText(subtitulo, xSub + 2, yFaixa + 77, 22, Fade(BLACK, 0.55f * a));
+    DrawText(subtitulo, xSub, yFaixa + 75, 22, Fade(RAYWHITE, a));
+}
+
 void desenharJogo(void) {
     BeginTextureMode(alvo);
     ClearBackground(DARKBLUE);
@@ -431,6 +466,9 @@ void desenharJogo(void) {
     // Barra fixa de informações no rodapé.
     desenharHUD();
 
+    // Aviso de início de fase (some sozinho depois de ~2 segundos).
+    desenharAvisoFase();
+
     EndTextureMode();
 }
 
@@ -478,6 +516,7 @@ static void desenharOpcaoMenu(const char *texto, int y, int tamanho, int selecio
 void iniciarFase(void) {
     jogador = (Jogador){1, 1, 0, 1};
     pontosInicioFase = jogo.pontos;
+    instanteInicioFase = GetTime();
 
     const Fase *config = obterFase(jogo.fase);
 
