@@ -4,6 +4,7 @@
 #include "estrutura.h"
 
 #define ARQUIVO_RECORDE "recordes.txt"
+#define MAX_RECORDES_SALVOS 10 // o arquivo guarda só os melhores
 
 extern Recorde *recordes;
 extern Posicao frutas[MAX_FRUTAS];

@@ -144,7 +144,11 @@ void salvarRecordes(void) {
         return;
     }
 
-    for (Recorde *r = recordes; r != NULL; r = r->prox) {
+    // A lista já está ordenada (maior primeiro): grava só o topo, para o
+    // arquivo não crescer sem limite.
+    int salvos = 0;
+    for (Recorde *r = recordes; r != NULL && salvos < MAX_RECORDES_SALVOS;
+         r = r->prox, salvos++) {
         fprintf(arquivo, "%d %d\n", r->pontos, r->fase);
     }
 

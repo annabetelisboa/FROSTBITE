@@ -27,43 +27,49 @@ int opcaoMenu = 0;
 double tempoUltimoMovimento = 0.0;
 float volumeMusica = 0.5f;
 
-// Procura um sprite em caminhos comuns, para funcionar tanto rodando
-// da raiz do projeto quanto de dentro de src/.
-static const char *caminhoSprite(const char *arquivo) {
-    static char caminho[512];
-    const char *raizes[] = {
-        "assets/sprites",
-        "../assets/sprites",
-        "../../assets/sprites"
-    };
-
-    for (int i = 0; i < (int)(sizeof(raizes) / sizeof(raizes[0])); i++) {
-        snprintf(caminho, sizeof(caminho), "%s/%s", raizes[i], arquivo);
-
-        if (FileExists(caminho)) {
-            return caminho;
-        }
-    }
-
-    snprintf(caminho, sizeof(caminho), "assets/sprites/%s", arquivo);
-    return caminho;
-}
-
-// Procura um arquivo na raiz do projeto (ou acima), para assets que nao ficam em assets/sprites.
-static const char *caminhoProjeto(const char *arquivo) {
+// Procura "pasta/arquivo" a partir da pasta atual e de até duas pastas
+// acima, para funcionar tanto rodando da raiz do projeto quanto de dentro
+// de src/. Se não achar, devolve o caminho a partir da raiz (o carregamento
+// falha e o jogo segue com o desenho/silêncio de reserva).
+// O resultado fica num buffer estático: use antes da próxima chamada.
+static const char *procurarArquivo(const char *pasta, const char *arquivo) {
     static char caminho[512];
     const char *raizes[] = { "", "../", "../../" };
 
     for (int i = 0; i < (int)(sizeof(raizes) / sizeof(raizes[0])); i++) {
-        snprintf(caminho, sizeof(caminho), "%s%s", raizes[i], arquivo);
+        snprintf(caminho, sizeof(caminho), "%s%s%s", raizes[i], pasta, arquivo);
 
         if (FileExists(caminho)) {
             return caminho;
         }
     }
 
-    snprintf(caminho, sizeof(caminho), "%s", arquivo);
+    snprintf(caminho, sizeof(caminho), "%s%s", pasta, arquivo);
     return caminho;
+}
+
+// Sprites ficam em assets/sprites/.
+static const char *caminhoSprite(const char *arquivo) {
+    return procurarArquivo("assets/sprites/", arquivo);
+}
+
+// Arquivos na raiz do projeto (ex.: o logo do menu).
+static const char *caminhoProjeto(const char *arquivo) {
+    return procurarArquivo("", arquivo);
+}
+
+// ---- Desenho de sprites ----
+
+// Desenha o quadro "quadro" de uma folha de sprites (quadros de 20x20 lado
+// a lado) esticado para o retângulo "destino".
+static void desenharQuadroSprite(Texture2D textura, int quadro, Rectangle destino) {
+    Rectangle origem = {
+        (float)(quadro * TAMANHO_SPRITE), 0.0f,
+        (float)TAMANHO_SPRITE, (float)TAMANHO_SPRITE
+    };
+
+    DrawTexturePro(textura, origem, destino,
+                   (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
 }
 
 // Desenha um sprite de 20x20 esticado para uma célula de 40x40.
@@ -73,17 +79,12 @@ static void desenharSpriteCelula(Texture2D textura, int quadro,
     int y = linha * TAMANHO_CELULA;
 
     if (IsTextureValid(textura)) {
-        Rectangle origem = {
-            (float)(quadro * TAMANHO_SPRITE), 0.0f,
-            (float)TAMANHO_SPRITE, (float)TAMANHO_SPRITE
-        };
         Rectangle destino = {
             (float)x, (float)y,
             (float)TAMANHO_CELULA, (float)TAMANHO_CELULA
         };
 
-        DrawTexturePro(textura, origem, destino,
-                       (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+        desenharQuadroSprite(textura, quadro, destino);
     } else if (corFallback.a > 0) {
         DrawRectangle(x, y, TAMANHO_CELULA - 1, TAMANHO_CELULA - 1, corFallback);
     }
@@ -118,17 +119,12 @@ static void desenharPinguim(void) {
     int quadro = andando ? ((int)(GetTime() * 8.0) % 2) : 0;
     int indice = direcao * 2 + quadro;
 
-    Rectangle origem = {
-        (float)(indice * TAMANHO_SPRITE), 0.0f,
-        (float)TAMANHO_SPRITE, (float)TAMANHO_SPRITE
-    };
     Rectangle destino = {
         (float)x, (float)y,
         (float)TAMANHO_CELULA, (float)TAMANHO_CELULA
     };
 
-    DrawTexturePro(spritePinguim, origem, destino,
-                   (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+    desenharQuadroSprite(spritePinguim, indice, destino);
 }
 
 // Desenha os inimigos: foca (patrulhadora) e urso-polar (perseguidor).
@@ -193,17 +189,12 @@ static void desenharInimigos(void) {
         int quadro = andando ? ((int)(GetTime() * 8.0) % 2) : 0;
         int indice = direcaoVista[i] * 2 + quadro;
 
-        Rectangle origem = {
-            (float)(indice * TAMANHO_SPRITE), 0.0f,
-            (float)TAMANHO_SPRITE, (float)TAMANHO_SPRITE
-        };
         Rectangle destino = {
             (float)x, (float)y,
             (float)TAMANHO_CELULA, (float)TAMANHO_CELULA
         };
 
-        DrawTexturePro(textura, origem, destino,
-                       (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+        desenharQuadroSprite(textura, indice, destino);
     }
 }
 
@@ -299,15 +290,10 @@ static void desenharHUD(void) {
     // --- esquerda: peixe animado + coletados/total ---
     if (IsTextureValid(spritePeixe)) {
         int quadro = ((int)(GetTime() * 5.0)) % QUADROS_PEIXE;
-        Rectangle origem = {
-            (float)(quadro * TAMANHO_SPRITE), 0.0f,
-            (float)TAMANHO_SPRITE, (float)TAMANHO_SPRITE
-        };
         Rectangle destino = { 20.0f, (float)(y0 + 10), 40.0f, 40.0f };
 
         DrawCircle(40, y0 + 30, 21, Fade(BLACK, 0.20f));
-        DrawTexturePro(spritePeixe, origem, destino,
-                       (Vector2){ 0.0f, 0.0f }, 0.0f, WHITE);
+        desenharQuadroSprite(spritePeixe, quadro, destino);
     }
 
     const char *textoColetados = TextFormat("%d", coletados);
@@ -477,6 +463,13 @@ void iniciarFase(void) {
     }
 }
 
+// Começa uma partida do zero: zera os pontos e volta para a fase 1.
+static void iniciarNovoJogo(void) {
+    jogo.pontos = 0;
+    jogo.fase = 1;
+    iniciarFase();
+}
+
 // Lógica de um frame do jogo (sem desenhar).
 void atualizarJogo(void) {
     double intervaloMovimento = 0.13;
@@ -590,9 +583,7 @@ void telaFaseConcluida(void) {
 // Tela final: aparece depois de completar a ultima fase.
 void telaFim(void) {
     if (IsKeyPressed(KEY_ENTER)) {
-        jogo.pontos = 0;
-        jogo.fase = 1;
-        iniciarFase();
+        iniciarNovoJogo();
         jogo.estado = MENU;
     }
 
@@ -618,9 +609,7 @@ void telaFim(void) {
 // Tela de game over: ENTER recomeça do zero.
 void telaGameOver(void) {
     if (IsKeyPressed(KEY_ENTER)) {
-        jogo.pontos = 0;
-        jogo.fase = 1;
-        iniciarFase();
+        iniciarNovoJogo();
         jogo.estado = MENU;
     }
 
@@ -654,9 +643,7 @@ void telaMenu(void) {
     // Confirmação
     if (IsKeyPressed(KEY_ENTER)) {
         if (opcaoMenu == 0) {
-            jogo.pontos = 0;
-            jogo.fase = 1;
-            iniciarFase();
+            iniciarNovoJogo();
             jogo.estado = JOGANDO;
         } else if (opcaoMenu == 1) {
             jogo.estado = RECORDES;
@@ -774,22 +761,9 @@ void telaRecordes(void) {
     EndTextureMode();
 }
 
-// Procura a música em caminhos comuns, para funcionar tanto rodando
-// da raiz do projeto quanto de dentro de src/.
+// A música fica em assets/. Se não achar, o jogo segue sem som.
 static const char *caminhoDaMusica(void) {
-    const char *opcoes[] = {
-        "assets/musica.mp3",
-        "../assets/musica.mp3",
-        "src/musica.mp3"
-    };
-
-    for (int i = 0; i < (int)(sizeof(opcoes) / sizeof(opcoes[0])); i++) {
-        if (FileExists(opcoes[i])) {
-            return opcoes[i];
-        }
-    }
-
-    return opcoes[0]; // não achou: o jogo segue sem som
+    return procurarArquivo("assets/", "musica.mp3");
 }
 
 // Desenha a textura do jogo centralizada na janela, mantendo a proporção.
