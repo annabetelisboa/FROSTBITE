@@ -629,7 +629,12 @@ void telaGameOver(void) {
     desenharTitulo("FIM DE JOGO!", 90, 35, RED);
     desenharTextoCentro("Voce foi alcancado por um inimigo.", 140, 20, RAYWHITE);
     desenharTextoCentro(TextFormat("Pontos: %d", jogo.pontos), 190, 22, RAYWHITE);
-    desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadas(), quantidadeFrutasAtivas),
+
+    // Mesmo cálculo da tela de fase concluída: peixes da fase inteira
+    // (todas as levas), e não só da leva em que o jogador perdeu.
+    const Fase *faseAtual = obterFase(jogo.fase);
+    int totalFase = (faseAtual != NULL) ? faseAtual->totalFrutas : quantidadeFrutasAtivas;
+    desenharTextoCentro(TextFormat("Peixes: %d/%d", contarFrutasColetadasFase(totalFase), totalFase),
                         225, 22, RAYWHITE);
     desenharTextoCentro("ENTER: voltar ao menu", 290, 18, RAYWHITE);
     EndTextureMode();
