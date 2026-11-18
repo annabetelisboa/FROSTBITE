@@ -836,8 +836,73 @@ void telaPausa(void) {
     EndTextureMode();
 }
 
+// Desenha um ícone 40x40 (primeiro quadro do sprite), se ele carregou.
+static void desenharIcone(Texture2D textura, int x, int y) {
+    if (IsTextureValid(textura)) {
+        desenharQuadroSprite(textura, 0,
+                             (Rectangle){ (float)x, (float)y, 40.0f, 40.0f });
+    }
+}
+
+// Tela "Como jogar": objetivo, inimigos e controles, a partir do menu.
+void telaInstrucoes(void) {
+    if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_BACKSPACE) ||
+        IsKeyPressed(KEY_ESCAPE)) {
+        jogo.estado = MENU;
+    }
+
+    BeginTextureMode(alvo);
+    desenharFundo(WHITE);
+
+    DrawRectangleRounded((Rectangle){ 170, 112, 860, 460 }, 0.05f, 6,
+                         Fade(BLACK, 0.45f));
+
+    desenharTitulo("COMO JOGAR", 50, 40, GOLD);
+
+    // Objetivo e inimigos, cada um com o seu sprite.
+    int xIcone = 210;
+    int xTexto = 270;
+
+    desenharIcone(spritePeixe, xIcone, 128);
+    desenharTextoSombra("Colete todos os peixes. Algumas fases tem mais de uma leva!",
+                        xTexto, 138, 20, RAYWHITE);
+
+    desenharIcone(spriteFoca, xIcone, 180);
+    desenharTextoSombra("A foca patrulha o labirinto. Nao encoste nela!",
+                        xTexto, 190, 20, RAYWHITE);
+
+    desenharIcone(spriteUrso, xIcone, 232);
+    desenharTextoSombra("O urso-polar persegue voce quando o Zz acaba.",
+                        xTexto, 242, 20, RAYWHITE);
+
+    // Controles.
+    desenharIcone(spritePinguim, xIcone, 296);
+    desenharTextoSombra("CONTROLES", xTexto, 306, 22, SKYBLUE);
+
+    const char *teclas[] = { "W A S D", "K", "P", "ESC" };
+    const char *acoes[] = {
+        "mover o pinguim",
+        "quebrar o gelo na direcao em que voce olha",
+        "reconstruir o gelo para bloquear os inimigos",
+        "pausar a partida"
+    };
+
+    for (int i = 0; i < 4; i++) {
+        int y = 350 + i * 34;
+        desenharTextoSombra(teclas[i], xTexto, y, 20, YELLOW);
+        desenharTextoSombra(acoes[i], xTexto + 130, y, 20, RAYWHITE);
+    }
+
+    desenharTextoSombra("Dica: o gelo novo nao cobre peixes e para antes dos inimigos.",
+                        xTexto, 500, 18, LIGHTGRAY);
+
+    desenharTextoCentro("ENTER, BACKSPACE ou ESC: voltar ao menu",
+                        ALTURA_JOGO - 40, 16, RAYWHITE);
+    EndTextureMode();
+}
+
 void telaMenu(void) {
-    const char *opcoes[NUM_OPCOES_MENU] = {"Jogar", "Recordes", "Ajustes", "Sair"};
+    const char *opcoes[NUM_OPCOES_MENU] = {"Jogar", "Como jogar", "Recordes", "Ajustes", "Sair"};
 
     // Navegação com setas ou W/S
     if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
@@ -853,8 +918,10 @@ void telaMenu(void) {
             iniciarNovoJogo();
             jogo.estado = JOGANDO;
         } else if (opcaoMenu == 1) {
-            jogo.estado = RECORDES;
+            jogo.estado = INSTRUCOES;
         } else if (opcaoMenu == 2) {
+            jogo.estado = RECORDES;
+        } else if (opcaoMenu == 3) {
             jogo.estado = AJUSTES;
         } else {
             jogo.estado = SAIR;
@@ -865,7 +932,7 @@ void telaMenu(void) {
     desenharFundo(WHITE);
 
     // Painel escuro atrás das opções, pra destacar do fundo nevado.
-    DrawRectangleRounded((Rectangle){ 300, 138, 600, 205 }, 0.08f, 6,
+    DrawRectangleRounded((Rectangle){ 300, 138, 600, 250 }, 0.08f, 6,
                          Fade(BLACK, 0.34f));
 
     if (IsTextureValid(logoMenu)) {
@@ -1084,6 +1151,9 @@ int main(void) {
                 break;
             case PAUSADO:
                 telaPausa();
+                break;
+            case INSTRUCOES:
+                telaInstrucoes();
                 break;
             default:
                 jogo.estado = SAIR;

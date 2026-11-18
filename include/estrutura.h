@@ -19,7 +19,7 @@
 #define MAX_FRUTAS 27
 #define MAX_INIMIGOS 5
 #define MAX_ROTA 24
-#define NUM_OPCOES_MENU 4
+#define NUM_OPCOES_MENU 5
 
 #define VELOCIDADE_INIMIGO 12
 #define VELOCIDADE_PERSEGUIDOR 24
@@ -80,6 +80,7 @@ typedef enum {
     RECORDES,
     AJUSTES,
     PAUSADO,
+    INSTRUCOES,
     SAIR,
 } Estado;
 
