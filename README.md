@@ -1,14 +1,15 @@
 ![Logo](frostbite-logo.png)
 
-#### Frostbite é um jogo arcade em que os jogadores exploram labirintos congelados, coletam itens, desviam de inimigos e usam o gelo para bloquear caminhos e criar estratégias. Ao avançar cada labirinto os inimigos aumentam e a dificuldade também. O jogo propõe  dinamismo e uma atmosfera congelante, os jogadores precisam superar obstáculos, escapar dos inimigos e encontrar o caminho para a vitória!
-[Video demo](https://youtu.be/BqJ3ZoSuy9Q)
+##### Frostbite é um jogo arcade em que os jogadores exploram labirintos congelados, coletam itens, desviam de inimigos e usam o gelo para bloquear caminhos e criar estratégias. Ao avançar cada labirinto os inimigos aumentam e a dificuldade também. O jogo propõe  dinamismo e uma atmosfera congelante, os jogadores precisam superar obstáculos, escapar dos inimigos e encontrar o caminho para a vitória!
+
+
+[GAMEPLAY (vídeo de demonstração)](https://youtu.be/BqJ3ZoSuy9Q)
 <br>
 
 <div align="center">
 
 # como abrir o jogo 
 
-˚ ༘ ⋆｡˚  ˚｡⋆ ༘ ˚
 
 *um guia pra você entrar no labirinto congelado*
 
@@ -32,7 +33,7 @@ o jogo já vem prontinho no repositório
 
 perfeito pra quem quer mexer no código ou jogar a versão mais nova 
 
-### ✦ passo 1 · instale as ferramentas (só na primeira vez)
+### passo 1 · instale as ferramentas (só na primeira vez)
 
 abra o **PowerShell** e cole:
 
@@ -52,14 +53,14 @@ mingw32-make --version
 
 se as duas mostrarem uma versão, tá tudo pronto 
 
-### ✦ passo 2 · baixe o jogo
+### passo 2 · baixe o jogo
 
 ```powershell
 git clone https://github.com/annabetelisboa/FROSTBITE.git
 cd FROSTBITE
 ```
 
-### ✦ passo 3 · compile e jogue 
+### passo 3 · compile e jogue 
 
 ```powershell
 mingw32-make run
@@ -98,11 +99,9 @@ e pronto, o labirinto abre em tela cheia
 
 <br>
 
-## 🐧 jogando no linux
+## jogando no linux
 
 <div align="center">
-
-˚₊‧꒰ა ☆ ໒꒱ ‧₊˚
 
 *sim, o pinguim também mora no linux!* 
 
@@ -110,7 +109,7 @@ e pronto, o labirinto abre em tela cheia
 
 > no linux o `Makefile` usa a raylib instalada no seu sistema (passo 2), então é só seguir os passos uma vez. é rapidinho, prometo!
 
-### ✦ passo 1 · ferramentas e bibliotecas (só na primeira vez)
+### passo 1 · ferramentas e bibliotecas (só na primeira vez)
 
 escolha a sua distro e cole no terminal 
 
@@ -133,7 +132,7 @@ sudo dnf install gcc make git alsa-lib-devel mesa-libGL-devel libX11-devel libXr
 sudo pacman -S base-devel git alsa-lib mesa libx11 libxrandr libxi libxcursor libxinerama
 ```
 
-### ✦ passo 2 · instale a raylib 6.2 (só na primeira vez)
+### passo 2 · instale a raylib 6.2 (só na primeira vez)
 
 o jogo usa a raylib **6.2**, então a gente instala exatamente essa versãozinha
 
@@ -154,7 +153,7 @@ git clone https://github.com/annabetelisboa/FROSTBITE.git
 cd FROSTBITE
 ```
 
-### ✦ passo 4 · compile e jogue 
+### passo 4 · compile e jogue 
 
 ```bash
 make run
@@ -218,13 +217,13 @@ gcc -std=c11 src/*.c -Iinclude -o frostbite -lraylib -lGL -lm -lpthread -ldl -lr
 - colete **todos os peixes** de cada leva pra liberar a próxima 
 - cuidado com a **foca** , que patrulha o labirinto, e com o **urso-polar** , que vem atrás de você!
 - use o gelo a seu favor: quebre pra abrir caminho e reconstrua pra fechar a passagem dos inimigos
-- são **3 fases**, cada uma mais difícil que a anterior. sobreviva até o final ✨
+- são **3 fases**, cada uma mais difícil que a anterior. sobreviva até o final
 
 <br>
 
 <div align="center">
 
-˚ ༘ ⋆｡˚  boa sorte no labirinto congelado  ˚｡⋆ ༘ ˚
+    !!boa sorte no labirinto congelado!!
 
 </div>
 

@@ -1,0 +1,7 @@
+# Arquivos gerados pela compilação
+/build/
+/frostbite
+/frostbite.exe
+
+# Arquivos temporários do VS Code Code Runner
+/src/tempCodeRunnerFile.c
