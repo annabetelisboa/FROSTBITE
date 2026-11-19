@@ -7,7 +7,6 @@ extern char mapa[LINHAS][COLUNAS];
 
 void preencherMapaBase(void);
 void abrirCorredor(int linha, int inicio, int fim);
-void paredeHorizontal(int linha, int inicio, int fim, int abertura);
 void inicializarMapaFase1(void);
 void inicializarMapaFase2(void);
 void inicializarMapaFase3(void);

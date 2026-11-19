@@ -49,15 +49,6 @@ void inicializarMapaFase3(void) {
     mapa[1][3] = CAMINHO;
 }
 
-// Cria uma parede horizontal com uma abertura.
-void paredeHorizontal(int linha, int inicio, int fim, int abertura) {
-    for (int c = inicio; c <= fim; c++) {
-        if (c != abertura) {
-            mapa[linha][c] = PAREDE_NORMAL;
-        }
-    }
-}
-
 void abrirCorredor(int linha, int inicio, int fim) {
     for (int c = inicio; c <= fim; c++) {
         if (mapa[linha][c] != PAREDE_NORMAL) {

@@ -7,13 +7,6 @@
 
 Inimigo inimigos[MAX_INIMIGOS];
 
-int calcularDistancia(Posicao a, Posicao b) {
-    int diferencaLinha = abs(a.linha - b.linha);
-    int diferencaColuna = abs(a.coluna - b.coluna);
-
-    return diferencaLinha + diferencaColuna;
-}
-
 int existeInimigo(int linha, int coluna) {
     for (int i = 0; i < MAX_INIMIGOS; i++) {
         if (!inimigos[i].ativo) {
@@ -138,39 +131,6 @@ void prepararRotasInimigos(void) {
             }
         }
     }
-}
-
-Posicao escolherMovimentoInteligente(Posicao opcoes[], int quantidade, int indiceInimigo) {
-    Posicao jogadorPos = {jogador.linha, jogador.coluna};
-
-    Posicao melhor;
-    int menorDistancia = LINHAS * COLUNAS + 1;
-    int encontrou = 0;
-
-    for (int i = 0; i < quantidade; i++) {
-        int ehPosicaoAnterior =
-            opcoes[i].linha == inimigos[indiceInimigo].posicaoAnterior.linha &&
-            opcoes[i].coluna == inimigos[indiceInimigo].posicaoAnterior.coluna;
-
-        // Evita voltar à posição anterior se houver outra opção.
-        if (quantidade > 1 && ehPosicaoAnterior) {
-            continue;
-        }
-
-        int distancia = calcularDistancia(opcoes[i], jogadorPos);
-
-        if (!encontrou || distancia < menorDistancia) {
-            menorDistancia = distancia;
-            melhor = opcoes[i];
-            encontrou = 1;
-        }
-    }
-
-    if (!encontrou) {
-        return opcoes[0];
-    }
-
-    return melhor;
 }
 
 int posicaoNoHistorico(Inimigo *inimigo, Posicao posicao) {
