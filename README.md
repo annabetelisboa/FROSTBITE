@@ -6,9 +6,9 @@
 
 <div align="center">
 
-# ❄️ como abrir o jogo ❄️
+# como abrir o jogo 
 
-˚ ༘ ⋆｡˚ 🐧 ˚｡⋆ ༘ ˚
+˚ ༘ ⋆｡˚  ˚｡⋆ ༘ ˚
 
 *um guia pra você entrar no labirinto congelado*
 
@@ -16,21 +16,21 @@
 
 <br>
 
-## 🧊 jeitinho rápido (sem instalar nada)
+## jeitinho rápido (sem instalar nada)
 
 o jogo já vem prontinho no repositório 
 
 1. clique no botão verde **`<> Code`** aqui no GitHub e depois em **Download ZIP**
 2. descompacte a pasta
-3. dê dois cliques no **`frostbite.exe`** 🐧
+3. dê dois cliques no **`frostbite.exe`** 
 
-> 💙 o `frostbite.exe` precisa ficar dentro da pasta do projeto, junto com a pasta `assets`. é lá que moram os sprites e a música!
+> o `frostbite.exe` precisa ficar dentro da pasta do projeto, junto com a pasta `assets`. é lá que moram os sprites e a música!
 
 <br>
 
-## ❄️ jeitinho de dev (compilando o código)
+## jeitinho de dev (compilando o código)
 
-perfeito pra quem quer mexer no código ou jogar a versão mais nova 🛠️
+perfeito pra quem quer mexer no código ou jogar a versão mais nova 
 
 ### ✦ passo 1 · instale as ferramentas (só na primeira vez)
 
@@ -41,7 +41,7 @@ winget install --id Git.Git -e
 winget install --id BrechtSanders.WinLibs.POSIX.UCRT -e
 ```
 
-Depois **feche e abra o terminal de novo** pra ele reconhecer as ferramentas novas  🔄
+Depois **feche e abra o terminal de novo** pra ele reconhecer as ferramentas novas  
 
 quer conferir se deu tudo certo? cole:
 
@@ -50,7 +50,7 @@ gcc --version
 mingw32-make --version
 ```
 
-se as duas mostrarem uma versão, tá tudo pronto 🎀
+se as duas mostrarem uma versão, tá tudo pronto 
 
 ### ✦ passo 2 · baixe o jogo
 
@@ -59,18 +59,18 @@ git clone https://github.com/annabetelisboa/FROSTBITE.git
 cd FROSTBITE
 ```
 
-### ✦ passo 3 · compile e jogue 🐟
+### ✦ passo 3 · compile e jogue 
 
 ```powershell
 mingw32-make run
 ```
 
-e pronto, o labirinto abre em tela cheia ❄️
+e pronto, o labirinto abre em tela cheia 
 
 <br>
 
 <details>
-<summary>🧸 <b>outros comandos úteis</b></summary>
+<summary><b>outros comandos úteis</b></summary>
 
 <br>
 
@@ -85,14 +85,14 @@ e pronto, o labirinto abre em tela cheia ❄️
 </details>
 
 <details>
-<summary>🩵 <b>deu algum probleminha?</b></summary>
+<summary> <b>deu algum probleminha?</b></summary>
 
 <br>
 
 - **"mingw32-make não é reconhecido"** → feche e abra o terminal de novo. se continuar, reinstale o passo 1
 - **o jogo abriu sem imagens ou sem música** → rode o jogo de dentro da pasta `FROSTBITE`, que é onde fica a pasta `assets`
 - **o botão ▶ / F5 do VS Code dá erro** → use o terminal com `mingw32-make run`, que é ele quem sabe onde está a raylib
-- **tá no linux?** → os passos acima são pro Windows. pule pra seção [🐧 jogando no linux](#-jogando-no-linux) logo abaixo 💙
+- **tá no linux?** → os passos acima são pro Windows. pule pra seção [🐧 jogando no linux](#-jogando-no-linux) logo abaixo 
 
 </details>
 
@@ -104,30 +104,30 @@ e pronto, o labirinto abre em tela cheia ❄️
 
 ˚₊‧꒰ა ☆ ໒꒱ ‧₊˚
 
-*sim, o pinguim também mora no linux!* 🐧💙
+*sim, o pinguim também mora no linux!* 
 
 </div>
 
-> 🌷 no linux o `Makefile` usa a raylib instalada no seu sistema (passo 2), então é só seguir os passos uma vez. é rapidinho, prometo!
+> no linux o `Makefile` usa a raylib instalada no seu sistema (passo 2), então é só seguir os passos uma vez. é rapidinho, prometo!
 
 ### ✦ passo 1 · ferramentas e bibliotecas (só na primeira vez)
 
-escolha a sua distro e cole no terminal 🎀
+escolha a sua distro e cole no terminal 
 
-**🍥 ubuntu / debian / mint**
+**ubuntu / debian / mint**
 
 ```bash
 sudo apt update
 sudo apt install build-essential git libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev libwayland-dev libxkbcommon-dev
 ```
 
-**🍡 fedora**
+**fedora**
 
 ```bash
 sudo dnf install gcc make git alsa-lib-devel mesa-libGL-devel libX11-devel libXrandr-devel libXi-devel libXcursor-devel libXinerama-devel libatomic
 ```
 
-**🍙 arch / manjaro**
+**arch / manjaro**
 
 ```bash
 sudo pacman -S base-devel git alsa-lib mesa libx11 libxrandr libxi libxcursor libxinerama
@@ -135,7 +135,7 @@ sudo pacman -S base-devel git alsa-lib mesa libx11 libxrandr libxi libxcursor li
 
 ### ✦ passo 2 · instale a raylib 6.2 (só na primeira vez)
 
-o jogo usa a raylib **6.2**, então a gente instala exatamente essa versãozinha 🌸
+o jogo usa a raylib **6.2**, então a gente instala exatamente essa versãozinha
 
 ```bash
 git clone --depth 1 --branch 6.2 https://github.com/raysan5/raylib.git ~/raylib-6.2
@@ -145,28 +145,28 @@ sudo make install
 cd ~
 ```
 
-> 💭 *por que não instalar pela loja de pacotes?* as versões de lá podem ser mais antigas que a 6.2, e aí o jogo não compila. assim fica tudo certinho ✨
+> *por que não instalar pela loja de pacotes?* as versões de lá podem ser mais antigas que a 6.2, e aí o jogo não compila. assim fica tudo certinho
 
-### ✦ passo 3 · baixe o jogo
+### passo 3 · baixe o jogo
 
 ```bash
 git clone https://github.com/annabetelisboa/FROSTBITE.git
 cd FROSTBITE
 ```
 
-### ✦ passo 4 · compile e jogue 🐟
+### ✦ passo 4 · compile e jogue 
 
 ```bash
 make run
 ```
 
-e pronto, o labirinto congelado abre no seu linux ❄️🐧
+e pronto, o labirinto congelado abre no seu linux 
 
-nas próximas vezes é só rodar `make run` de dentro da pasta `FROSTBITE` 🧸
+nas próximas vezes é só rodar `make run` de dentro da pasta `FROSTBITE` 
 (ele compila de novo sozinho se alguém mudou o código)
 
 <details>
-<summary>🍓 <b>prefere sem make?</b></summary>
+<summary> <b>prefere sem make?</b></summary>
 
 <br>
 
@@ -178,7 +178,7 @@ gcc -std=c11 src/*.c -Iinclude -o frostbite -lraylib -lGL -lm -lpthread -ldl -lr
 </details>
 
 <details>
-<summary>🩵 <b>deu algum probleminha no linux?</b></summary>
+<summary> <b>deu algum probleminha no linux?</b></summary>
 
 <br>
 
@@ -186,26 +186,26 @@ gcc -std=c11 src/*.c -Iinclude -o frostbite -lraylib -lGL -lm -lpthread -ldl -lr
 - **erro com `X11/Xlib.h` ou `GL/gl.h` no passo 2** → faltou alguma biblioteca do passo 1. cole o comando da sua distro de novo
 - **o jogo abriu sem imagens ou sem música** → rode o `./frostbite` de dentro da pasta `FROSTBITE`, que é onde fica a pasta `assets`
 - **o jogo abriu mas sem som** → confira se o som do sistema está funcionando. o jogo continua normalzinho mesmo sem áudio
-- **testado no ubuntu 24.04** 🍥 em outras distros os passos são os mesmos, só muda o comando do passo 1
+- **testado no ubuntu 24.04** em outras distros os passos são os mesmos, só muda o comando do passo 1
 
 </details>
 
 <br>
 
-## 🎮 controles
+## controles
 
 <div align="center">
 
 | tecla | ação |
 |:--:|:--|
-| <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | mover o pinguim 🐧 |
-| <kbd>K</kbd> | quebrar o gelo na direção que você está olhando 🧊 |
-| <kbd>P</kbd> | reconstruir o gelo pra bloquear os inimigos ❄️ |
+| <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | mover o pinguim |
+| <kbd>K</kbd> | quebrar o gelo na direção que você está olhando |
+| <kbd>P</kbd> | reconstruir o gelo pra bloquear os inimigos |
 | <kbd>↑</kbd> <kbd>↓</kbd> ou <kbd>W</kbd> <kbd>S</kbd> | escolher opção no menu |
 | <kbd>Enter</kbd> | confirmar |
-| <kbd>←</kbd> <kbd>→</kbd> | volume da música, na tela de ajustes 🎵 |
-| <kbd>Esc</kbd> | pausar / continuar a partida ⏸️ |
-| <kbd>R</kbd> | jogar de novo, na tela de fim de jogo 🔁 |
+| <kbd>←</kbd> <kbd>→</kbd> | volume da música, na tela de ajustes |
+| <kbd>Esc</kbd> | pausar / continuar a partida  |
+| <kbd>R</kbd> | jogar de novo, na tela de fim de jogo  |
 | <kbd>F11</kbd> ou <kbd>Alt</kbd> + <kbd>Enter</kbd> | tela cheia / janela |
 | opção **Sair** do menu ou <kbd>Alt</kbd> + <kbd>F4</kbd> | sair do jogo |
 
@@ -213,10 +213,10 @@ gcc -std=c11 src/*.c -Iinclude -o frostbite -lraylib -lGL -lm -lpthread -ldl -lr
 
 <br>
 
-## 🐟 como jogar
+##  como jogar
 
-- colete **todos os peixes** de cada leva pra liberar a próxima 🐟
-- cuidado com a **foca** 🦭, que patrulha o labirinto, e com o **urso-polar** 🐻‍❄️, que vem atrás de você!
+- colete **todos os peixes** de cada leva pra liberar a próxima 
+- cuidado com a **foca** , que patrulha o labirinto, e com o **urso-polar** , que vem atrás de você!
 - use o gelo a seu favor: quebre pra abrir caminho e reconstrua pra fechar a passagem dos inimigos
 - são **3 fases**, cada uma mais difícil que a anterior. sobreviva até o final ✨
 
@@ -224,7 +224,7 @@ gcc -std=c11 src/*.c -Iinclude -o frostbite -lraylib -lGL -lm -lpthread -ldl -lr
 
 <div align="center">
 
-˚ ༘ ⋆｡˚ ❄️ boa sorte no labirinto congelado ❄️ ˚｡⋆ ༘ ˚
+˚ ༘ ⋆｡˚  boa sorte no labirinto congelado  ˚｡⋆ ༘ ˚
 
 </div>
 
